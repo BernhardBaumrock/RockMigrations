@@ -17,3 +17,17 @@ For example you could create a migration for your module that fires for version 
 
 Code completion:
 ![code completion](https://i.imgur.com/7eWpE4V.png)
+
+## Demo Code for Tracy Console:
+
+```php
+$demo = $modules->get('RockMigrationsDemoModule');
+$rm = $modules->get('RockMigrations');
+$rm->setModule($demo);
+d($rm->executeUpgrade(null, '0.0.10'));
+d($rm->executeUpgrade('0.0.10', null));
+```
+
+Result:
+
+![result](https://i.imgur.com/iFvHwyO.png)
