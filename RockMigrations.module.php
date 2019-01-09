@@ -99,7 +99,7 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function executeInstall() {
-    $version = $this->modules->getModuleInfo($this->module)['version'];
+    $version = self::getModuleInfo()['version'];
     return $this->executeUpgrade(null, $version);
   }
   
@@ -109,7 +109,7 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function executeUninstall() {
-    $version = $this->modules->getModuleInfo($this->module)['version'];
+    $version = self::getModuleInfo()['version'];
     return $this->executeUpgrade($version, null);
   }
 
@@ -172,23 +172,78 @@ class RockMigrations extends WireData implements Module {
 
   /* ##################### RockMigrations API Methods ##################### */
 
-  /**
-   * Create a new ProcessWire Template
-   *
-   * @param string $name
-   * @return void
-   */
-  public function createTemplate($name) {
-    d("This will create the template $name. Those helper functions are not implemented yet - I'm open to suggestions!");
-  }
+  /* ##### templates ##### */
+    /**
+     * Create a new ProcessWire Template
+     *
+     * @param string $name
+     * @return void
+     */
+    public function createTemplate($name) {
+      d("This will create the template $name. Those helper functions are not implemented yet - I'm open to suggestions!");
+    }
 
-  /**
-   * Remove a ProcessWire Template
-   *
-   * @param string $name
-   * @return void
-   */
-  public function removeTemplate($name) {
-    d("This will remove the template $name. Here we can add tedious tasks such as cleanup of pages having this template etc...");
-  }
+    /**
+     * Remove a ProcessWire Template
+     *
+     * @param string $name
+     * @return void
+     */
+    public function removeTemplate($name) {
+      d("This will remove the template $name. Here we can add tedious tasks such as cleanup of pages having this template etc...");
+    }
+  
+  /* ##### permissions ##### */
+
+    /**
+     * Add a permission to given role.
+     *
+     * @param String|Integer $role
+     * @param String|Integer $permission
+     * @return void
+     */
+    public function addPermissionToRole($role, $permission) {
+      $role = $this->roles->get($role);
+      $role->of(false);
+      $role->addPermission($permission);
+      return $role->save();
+    }
+    /**
+     * Remove a permission from given role.
+     *
+     * @param String|Integer $role
+     * @param String|Integer $permission
+     * @return void
+     */
+    public function removePermissionFromRole($role, $permission) {
+      $role = $this->roles->get($role);
+      $role->of(false);
+      $role->removePermission($permission);
+      return $role->save();
+    }
+
+  /* ##### modules ##### */
+
+    /**
+     * Set module config data.
+     *
+     * @param String $module
+     * @param Array $data
+     * @return Module
+     */
+    public function setModuleConfig($module, $data) {
+      $module = $this->modules->get($module);
+      if(!$module) throw new WireException("Module not found!");
+      $this->modules->saveConfig($module, $data);
+    }
+
+    /**
+     * Get module config data.
+     *
+     * @param String $module
+     * @return Array
+     */
+    public function getModuleConfig($module) {
+      return $this->modules->getModuleConfigData($module);
+    }
 }
