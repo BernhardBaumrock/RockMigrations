@@ -236,6 +236,23 @@ class RockMigrations extends WireData implements Module {
       if(!$module) throw new WireException("Module not found!");
       $this->modules->saveConfig($module, $data);
     }
+    
+    /**
+     * Update module config data.
+     *
+     * @param String $module
+     * @param String $property
+     * @param Array $data
+     * @return Module
+     */
+    public function updateModuleConfig($module, $property, $data) {
+      $module = $this->modules->get($module);
+      if(!$module) throw new WireException("Module not found!");
+
+      $newdata = $this->getModuleConfig($module);
+      $newdata[$property] = $data;
+      $this->modules->saveConfig($module, $newdata);
+    }
 
     /**
      * Get module config data.
