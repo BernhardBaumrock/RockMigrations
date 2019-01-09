@@ -38,7 +38,9 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function setModule($module) {
+    if(!$module instanceof Module) throw new WireException("This is not a valid Module!");
     $this->module = $module;
+    return $this;
   }
 
   /**
@@ -89,6 +91,26 @@ class RockMigrations extends WireData implements Module {
     }
 
     return $count;
+  }
+
+  /**
+   * Execute all Upgrade Scripts on Installation
+   *
+   * @return void
+   */
+  public function executeInstall() {
+    $version = $this->modules->getModuleInfo($this->module)['version'];
+    return $this->executeUpgrade(null, $version);
+  }
+  
+  /**
+   * Execute all Downgrade Scripts on Uninstallation
+   *
+   * @return void
+   */
+  public function executeUninstall() {
+    $version = $this->modules->getModuleInfo($this->module)['version'];
+    return $this->executeUpgrade($version, null);
   }
 
   /**
@@ -148,7 +170,7 @@ class RockMigrations extends WireData implements Module {
     return $this->config->paths($this->module) . $this->className() . "/";
   }
 
-  /* ##################### helper classes ##################### */
+  /* ##################### RockMigrations API Methods ##################### */
 
   /**
    * Create a new ProcessWire Template
