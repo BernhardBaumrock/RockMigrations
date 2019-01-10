@@ -82,6 +82,11 @@ class RockMigrations extends WireData implements Module {
         // this migration is part of the upgrade, so run it
         // this either calls upgrade() or downgrade() of the php file
         $this->log("Executing $mode $version");
+
+        // make sure outputformatting is off for all migrations
+        $this->pages->of(false);
+
+        // execute the migrations
         $migration = $this->getMigration($version);
         $migration->{$mode}->__invoke($this);
 
@@ -184,12 +189,12 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Remove a ProcessWire Template
+     * Delete a ProcessWire Template
      *
      * @param string $name
      * @return void
      */
-    public function removeTemplate($name) {
+    public function deleteTemplate($name) {
       d("This will remove the template $name. Here we can add tedious tasks such as cleanup of pages having this template etc...");
     }
   
@@ -220,6 +225,38 @@ class RockMigrations extends WireData implements Module {
       $role->of(false);
       $role->removePermission($permission);
       return $role->save();
+    }
+
+  /* ##### users ##### */
+
+    /**
+     * Create a PW user with given password.
+     * If the user already exists it will return this user.
+     *
+     * @param String $username
+     * @param String $password
+     * @return User
+     */
+    public function createUser($username, $password) {
+      $user = $this->users->get($username);
+      if($user->id) return $user;
+
+      $user = $this->wire->users->add($username);
+      $user->pass = $password;
+      $user->save();
+      return $user;
+    }
+    
+    /**
+     * Delete a PW user.
+     *
+     * @param String $username
+     * @return void
+     */
+    public function deleteUser($username) {
+      $user = $this->users->get($username);
+      if(!$user->id) return;
+      $u = $this->wire->users->delete($user);
     }
 
   /* ##### modules ##### */
