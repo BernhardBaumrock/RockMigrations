@@ -177,6 +177,32 @@ class RockMigrations extends WireData implements Module {
 
   /* ##################### RockMigrations API Methods ##################### */
 
+  /* ##### fields ##### */
+
+    /**
+     * Delete the given field.
+     *
+     * @param string $fieldname
+     * @return void
+     */
+    public function deleteField($fieldname) {
+      $field = $this->fields->get($fieldname);
+      if(!$field OR !$field->id) return;
+
+      // make sure we can delete the field by removing all flags
+      $field->flags = Field::flagSystemOverride;
+      $field->flags = 0;
+
+      // remove the field from all fieldgroups
+      foreach($this->fieldgroups as $fieldgroup) {
+        /** @var Fieldgroup $fieldgroup */
+        $fieldgroup->remove($field);
+        $fieldgroup->save();
+      }
+
+      return $this->fields->delete($field);
+    }
+
   /* ##### templates ##### */
     /**
      * Create a new ProcessWire Template
@@ -195,16 +221,59 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function deleteTemplate($name) {
-      d("This will remove the template $name. Here we can add tedious tasks such as cleanup of pages having this template etc...");
+      $template = $this->templates->get($name);
+      if(!$template OR !$template->id) return;
+
+      // remove all pages having this template
+      foreach($this->pages->find("template=$template, include=all") as $p) {
+        $this->deletePage($p);
+      }
+
+      // make sure we can delete the template by removing all flags
+      $template->flags = Template::flagSystemOverride;
+      $template->flags = 0;
+
+      // delete the template
+      $this->templates->delete($template);
+
+      // delete the fieldgroup
+      $fg = $this->fieldgroups->get($name);
+      $this->fieldgroups->delete($fg);
     }
   
+  /* ##### pages ##### */
+
+    /**
+     * Delete the given page including all children.
+     *
+     * @param Page $page
+     * @return void
+     */
+    public function deletePage($page) {
+      // make sure we got a page
+      $page = $this->pages->get((string)$page);
+      if(!$page->id) return;
+      
+      // make sure we can delete the page and delete it
+      // we also need to make sure that all descendants of this page are deletable
+      $all = $this->wire(new PageArray());
+      $all->add($page);
+      $all->add($this->pages->find("has_parent=$page"));
+      foreach($all as $p) {
+        $p->addStatus(Page::statusSystemOverride);
+        $p->status = 1;
+        $p->save();
+      }
+      $this->pages->delete($page, true);
+    }
+
   /* ##### permissions ##### */
 
     /**
      * Add a permission to given role.
      *
-     * @param String|Integer $role
-     * @param String|Integer $permission
+     * @param string|int $role
+     * @param string|int $permission
      * @return void
      */
     public function addPermissionToRole($role, $permission) {
@@ -216,8 +285,8 @@ class RockMigrations extends WireData implements Module {
     /**
      * Remove a permission from given role.
      *
-     * @param String|Integer $role
-     * @param String|Integer $permission
+     * @param string|int $role
+     * @param string|int $permission
      * @return void
      */
     public function removePermissionFromRole($role, $permission) {
@@ -233,8 +302,8 @@ class RockMigrations extends WireData implements Module {
      * Create a PW user with given password.
      * If the user already exists it will return this user.
      *
-     * @param String $username
-     * @param String $password
+     * @param string $username
+     * @param string $password
      * @return User
      */
     public function createUser($username, $password) {
@@ -250,7 +319,7 @@ class RockMigrations extends WireData implements Module {
     /**
      * Delete a PW user.
      *
-     * @param String $username
+     * @param string $username
      * @return void
      */
     public function deleteUser($username) {
@@ -264,8 +333,8 @@ class RockMigrations extends WireData implements Module {
     /**
      * Set module config data.
      *
-     * @param String $module
-     * @param Array $data
+     * @param string $module
+     * @param array $data
      * @return Module
      */
     public function setModuleConfig($module, $data) {
@@ -277,27 +346,91 @@ class RockMigrations extends WireData implements Module {
     /**
      * Update module config data.
      *
-     * @param String $module
-     * @param String $property
-     * @param Array $data
+     * @param string $module
+     * @param array $data
      * @return Module
      */
-    public function updateModuleConfig($module, $property, $data) {
+    public function updateModuleConfig($module, $data) {
       $module = $this->modules->get($module);
       if(!$module) throw new WireException("Module not found!");
 
       $newdata = $this->getModuleConfig($module);
-      $newdata[$property] = $data;
+      foreach($data as $k=>$v) $newdata[$k] = $v;
       $this->modules->saveConfig($module, $newdata);
     }
 
     /**
      * Get module config data.
      *
-     * @param String $module
-     * @return Array
+     * @param string $module
+     * @return array
      */
     public function getModuleConfig($module) {
+      $module = $this->modules->get($module);
       return $this->modules->getModuleConfigData($module);
+    }
+
+    /**
+     * Install module if it is not already installed.
+     *
+     * @param string $name
+     * @return void
+     */
+    public function installModule($name) {
+      // tbd
+    }
+
+  /* ##### languages ##### */
+
+    /**
+     * Install language support.
+     * 
+     * It can be helpful to completely remove language support in some situations:
+     * https://processwire.com/talk/topic/7207-can%C2%B4t-install-languagesupport/
+     *
+     * @return void
+     */
+    public function installLanguageSupport() {
+      $this->modules->install('LanguageSupport');
+      $this->modules->install('LanguageSupportFields');
+      $this->modules->install('LanguageSupportPageNames');
+      $this->modules->install('LanguageTabs');
+    }
+
+    /**
+     * Uninstall language support.
+     *
+     * @return void
+     */
+    public function uninstallLanguageSupport() {
+      $this->modules->uninstall('LanguageTabs');
+      $this->modules->uninstall('LanguageSupportPageNames');
+      $this->modules->uninstall('LanguageSupportFields');
+      $this->modules->uninstall('LanguageSupport');
+    }
+
+    /**
+     * Reset language support.
+     * This can help if you have trouble uninstalling language support manually:
+     * https://processwire.com/talk/topic/7207-can%C2%B4t-install-languagesupport/
+     *
+     * @return void
+     */
+    public function resetLanguageSupport() {
+      $setup = $this->pages->get('parent.id=2, name=setup');
+      $this->deletePage($this->pages->get([
+        'name' => 'language-translator',
+        'parent' => $setup,
+      ]));
+      $this->deletePage($this->pages->get([
+        'name' => 'languages',
+        'parent' => $setup,
+      ]));
+      $this->deleteField('language');
+      $this->deleteField('language_files');
+      $this->deleteTemplate('language');
+      $this->modules->uninstall('ProcessLanguageTranslator');
+      $this->modules->uninstall('ProcessLanguage');
+      @$this->modules->uninstall('LanguageSupport');
     }
 }
