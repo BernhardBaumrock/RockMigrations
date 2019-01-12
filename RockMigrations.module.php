@@ -34,10 +34,11 @@ class RockMigrations extends WireData implements Module {
   /**
    * Set module that is controlled
    *
-   * @param Module $module
+   * @param string|Module $module
    * @return void
    */
   public function setModule($module) {
+    $module = $this->modules->get((string)$module);
     if(!$module instanceof Module) throw new WireException("This is not a valid Module!");
     $this->module = $module;
     return $this;
