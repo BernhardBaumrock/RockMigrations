@@ -474,54 +474,59 @@ class RockMigrations extends WireData implements Module {
   /* ##### languages ##### */
 
     /**
-     * Install language support.
-     * 
-     * It can be helpful to completely remove language support in some situations:
-     * https://processwire.com/talk/topic/7207-can%C2%B4t-install-languagesupport/
-     *
-     * @return void
+     * Language support via API is tricky! For the time it is recommended to
+     * enable language support manually and then do all further changes via API.
      */
-    public function installLanguageSupport() {
-      $this->modules->install('LanguageSupport');
-      $this->modules->install('LanguageSupportFields');
-      $this->modules->install('LanguageSupportPageNames');
-      $this->modules->install('LanguageTabs');
-    }
 
-    /**
-     * Uninstall language support.
-     *
-     * @return void
-     */
-    public function uninstallLanguageSupport() {
-      $this->modules->uninstall('LanguageTabs');
-      $this->modules->uninstall('LanguageSupportPageNames');
-      $this->modules->uninstall('LanguageSupportFields');
-      $this->modules->uninstall('LanguageSupport');
-    }
+    // /**
+    //  * Install language support.
+    //  * 
+    //  * It can be helpful to completely remove language support in some situations:
+    //  * https://processwire.com/talk/topic/7207-can%C2%B4t-install-languagesupport/
+    //  *
+    //  * @return void
+    //  */
+    // public function installLanguageSupport() {
+    //   $this->modules->install('LanguageSupport');
+    //   $this->modules->install('LanguageSupportFields');
+    //   $this->modules->install('LanguageSupportPageNames');
+    //   $this->modules->install('LanguageTabs');
+    // }
 
-    /**
-     * Reset language support.
-     * This can help if you have trouble uninstalling language support manually:
-     * https://processwire.com/talk/topic/7207-can%C2%B4t-install-languagesupport/
-     *
-     * @return void
-     */
-    public function resetLanguageSupport() {
-      $setup = $this->pages->get('parent.id=2, name=setup');
-      $this->deletePage($this->pages->get([
-        'name' => 'language-translator',
-        'parent' => $setup,
-      ]));
-      $this->deletePage($this->pages->get([
-        'name' => 'languages',
-        'parent' => $setup,
-      ]));
-      $this->deleteField('language');
-      $this->deleteField('language_files');
-      $this->deleteTemplate('language');
-      $this->modules->uninstall('ProcessLanguageTranslator');
-      $this->modules->uninstall('ProcessLanguage');
-      @$this->modules->uninstall('LanguageSupport');
-    }
+    // /**
+    //  * Uninstall language support.
+    //  *
+    //  * @return void
+    //  */
+    // public function uninstallLanguageSupport() {
+    //   $this->modules->uninstall('LanguageTabs');
+    //   $this->modules->uninstall('LanguageSupportPageNames');
+    //   $this->modules->uninstall('LanguageSupportFields');
+    //   $this->modules->uninstall('LanguageSupport');
+    // }
+
+    // /**
+    //  * Reset language support.
+    //  * This can help if you have trouble uninstalling language support manually:
+    //  * https://processwire.com/talk/topic/7207-can%C2%B4t-install-languagesupport/
+    //  *
+    //  * @return void
+    //  */
+    // public function resetLanguageSupport() {
+    //   $setup = $this->pages->get('parent.id=2, name=setup');
+    //   $this->deletePage($this->pages->get([
+    //     'name' => 'language-translator',
+    //     'parent' => $setup,
+    //   ]));
+    //   $this->deletePage($this->pages->get([
+    //     'name' => 'languages',
+    //     'parent' => $setup,
+    //   ]));
+    //   $this->deleteField('language');
+    //   $this->deleteField('language_files');
+    //   $this->deleteTemplate('language');
+    //   $this->modules->uninstall('ProcessLanguageTranslator');
+    //   $this->modules->uninstall('ProcessLanguage');
+    //   @$this->modules->uninstall('LanguageSupport');
+    // }
 }
