@@ -329,6 +329,21 @@ class RockMigrations extends WireData implements Module {
       $u = $this->wire->users->delete($user);
     }
 
+    /**
+     * Add role to user
+     *
+     * @param User|string $user
+     * @param string $role
+     * @return void
+     */
+    public function addRoleToUser($user, $role) {
+      /** @var User $user */
+      $user = $this->users->get((string)$user);
+      if(!$user->id) throw new WireException("User not found");
+      $user->addRole($role);
+      $user->save();
+    }
+
   /* ##### modules ##### */
 
     /**
