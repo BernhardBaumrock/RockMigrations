@@ -204,6 +204,44 @@ class RockMigrations extends WireData implements Module {
       return $this->fields->delete($field);
     }
 
+    /**
+     * Set the language value of the given field.
+     *
+     * @param Page|string $page
+     * @param Field|string $field
+     * @param array $data
+     * @return void
+     */
+    public function setFieldLanguageValue($page, $field, $data) {
+      $page = $this->pages->get((string)$page);
+      if(!$page->id) throw new WireException("Page not found!");
+
+      $field = $this->fields->get((string)$field);
+      if(!$field->id) throw new WireException("Field not found!");
+      
+      // set field value for all provided languages
+      foreach($data as $lang=>$val) {
+        $lang = $this->languages->get($lang);
+        if(!$lang->id) continue;
+        $page->{$field}->setLanguageValue($lang, $val);
+      }
+      $page->save();
+    }
+
+    /**
+     * Set the type of a field
+     *
+     * @param Field|string $field
+     * @param string $type
+     * @return void
+     */
+    public function setFieldType($field, $type) {
+      $field = $this->fields->get((string)$field);
+      if(!$field->id) throw new WireException("Field not found!");
+      $field->type = $type;
+      $field->save();
+    }
+
   /* ##### templates ##### */
     /**
      * Create a new ProcessWire Template
@@ -273,11 +311,11 @@ class RockMigrations extends WireData implements Module {
     /**
      * Add a permission to given role.
      *
-     * @param string|int $role
      * @param string|int $permission
+     * @param string|int $role
      * @return void
      */
-    public function addPermissionToRole($role, $permission) {
+    public function addPermissionToRole($permission, $role) {
       $role = $this->roles->get($role);
       $role->of(false);
       $role->addPermission($permission);
@@ -286,15 +324,42 @@ class RockMigrations extends WireData implements Module {
     /**
      * Remove a permission from given role.
      *
-     * @param string|int $role
      * @param string|int $permission
+     * @param string|int $role
      * @return void
      */
-    public function removePermissionFromRole($role, $permission) {
+    public function removePermissionFromRole($permission, $role) {
       $role = $this->roles->get($role);
       $role->of(false);
       $role->removePermission($permission);
       return $role->save();
+    }
+
+    /**
+     * Create permission with given name.
+     *
+     * @param string $name
+     * @param string $description
+     * @return Permission
+     */
+    public function createPermission($name, $description = null) {
+      // if the permission exists return it
+      $permission = $this->permissions->get($name);
+      if(!$permission->id) $permission = $this->permissions->add($name);
+      $permission->setAndSave('title', $description);
+      return $permission;
+    }
+
+    /**
+     * Delete the given permission.
+     *
+     * @param Permission|string $permission
+     * @return void
+     */
+    public function deletePermission($permission) {
+      $permission = $this->permissions->get((string)$permission);
+      if(!$permission->id) return;
+      $this->permissions->delete($permission);
     }
 
   /* ##### users ##### */
@@ -332,11 +397,11 @@ class RockMigrations extends WireData implements Module {
     /**
      * Add role to user
      *
-     * @param User|string $user
      * @param string $role
+     * @param User|string $user
      * @return void
      */
-    public function addRoleToUser($user, $role) {
+    public function addRoleToUser($role, $user) {
       /** @var User $user */
       $user = $this->users->get((string)$user);
       if(!$user->id) throw new WireException("User not found");
@@ -387,13 +452,23 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Install module if it is not already installed.
+     * Install module.
      *
      * @param string $name
      * @return void
      */
     public function installModule($name) {
-      // tbd
+      $this->modules->install($name);
+    }
+    
+    /**
+     * Uninstall module.
+     *
+     * @param string|Module $name
+     * @return void
+     */
+    public function uninstallModule($name) {
+      $this->modules->uninstall($name);
     }
 
   /* ##### languages ##### */
