@@ -181,6 +181,36 @@ class RockMigrations extends WireData implements Module {
   /* ##### fields ##### */
 
     /**
+     * Create a field of the given type.
+     *
+     * @param string $name
+     * @param string $type
+     * @return void
+     */
+    public function createField($name, $typename) {
+      $field = $this->fields->get((string)$name);
+      if($field) return $field;
+
+      // setup fieldtype
+      $type = $this->modules->get($typename);
+      if(!$type) {
+        // shortcut types are possible, eg "text" for "FieldtypeText"
+        $type = "Fieldtype".ucfirst($typename);
+        $type = $this->modules->get($type);
+        if(!$type) throw new WireException("Invalid Fieldtype");
+      }
+      
+      // create the new field
+      $name = strtolower($name);
+      $field = $this->wire(new Field());
+      $field->type = $type;
+      $field->name = $name;
+      $field->save();
+
+      return $field;
+    }
+
+    /**
      * Delete the given field.
      *
      * @param string $fieldname
@@ -229,18 +259,86 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Set the type of a field
+     * Set data of a field.
+     * 
+     * TODO: Set data in template context.
+     * 
+     * Multilang is also possible:
+     * $rm->setFieldData('yourfield', [
+     *   'label' => 'foo', // default language
+     *   'label1021' => 'bar', // other language
+     * ]);
      *
      * @param Field|string $field
-     * @param string $type
+     * @param array $data
      * @return void
      */
-    public function setFieldType($field, $type) {
+    public function setFieldData($field, $data) {
       $field = $this->fields->get((string)$field);
       if(!$field->id) throw new WireException("Field not found!");
-      $field->type = $type;
+      foreach($data as $k=>$v) $field->{$k} = $v;
       $field->save();
+      return $field;
     }
+
+    /**
+     * Add field to template.
+     *
+     * @param Field|string $field
+     * @param Template|string $template
+     * @return void
+     */
+    public function addFieldToTemplate($field, $template, $afterfield = null, $beforefield = null) {
+      $field = $this->fields->get((string)$field);
+      if(!$field) throw new WireException("Field not found");
+      
+      $template = $this->templates->get((string)$template);
+      if(!$template) throw new WireException("Template not found");
+      
+      $afterfield = $this->fields->get((string)$afterfield);
+      $beforefield = $this->fields->get((string)$beforefield);
+      $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
+
+      if($afterfield) $fg->insertAfter($field, $afterfield);
+      elseif($beforefield) $fg->insertBefore($field, $beforefield);
+      else $fg->add($field);
+      $fg->save();
+    }
+
+    /**
+     * Remove Field from Template.
+     *
+     * @param Field|string $field
+     * @param Template|string $template
+     * @return void
+     */
+    public function removeFieldFromTemplate($field, $template) {
+      $field = $this->fields->get((string)$field);
+      if(!$field) return;
+      
+      $template = $this->templates->get((string)$template);
+      if(!$template) return;
+      $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
+
+      $fg->remove($field);
+      $fg->save();
+    }
+
+    // /**
+    //  * Set the type of a field.
+    //  * 
+    //  * DEPRECATED, use setFieldData instead!
+    //  *
+    //  * @param Field|string $field
+    //  * @param string $type
+    //  * @return void
+    //  */
+    // public function setFieldType($field, $type) {
+    //   $field = $this->fields->get((string)$field);
+    //   if(!$field->id) throw new WireException("Field not found!");
+    //   $field->type = $type;
+    //   $field->save();
+    // }
 
   /* ##### templates ##### */
     /**
