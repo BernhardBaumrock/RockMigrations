@@ -74,6 +74,12 @@ class RockMigrations extends WireData implements Module {
       $from = $to;
       $to = $tmp;
     }
+
+    // make sure we execute the migrations on the default language.
+    // this is necessary that field values are set in the default language,
+    // eg. when creating a new page and setting the title of a multi-lang page.
+    $lang = $this->user->language;
+    $this->user->language = $this->languages->getDefault();
     
     // now execute all available upgrades step by step
     foreach($migrations as $version) {
@@ -95,6 +101,9 @@ class RockMigrations extends WireData implements Module {
         $count++;
       }
     }
+
+    // change language back to original
+    $this->user->setAndSave('language', $lang);
 
     return $count;
   }
@@ -236,6 +245,11 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Set the language value of the given field.
+     * 
+     * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
+     *   'default' => 'Therapie',
+     *   'english' => 'Therapy',
+     * ]);
      *
      * @param Page|string $page
      * @param Field|string $field
@@ -275,7 +289,7 @@ class RockMigrations extends WireData implements Module {
      */
     public function setFieldData($field, $data) {
       $field = $this->fields->get((string)$field);
-      if(!$field->id) throw new WireException("Field not found!");
+      if(!$field) throw new WireException("Field not found!");
       foreach($data as $k=>$v) $field->{$k} = $v;
       $field->save();
       return $field;
@@ -303,6 +317,30 @@ class RockMigrations extends WireData implements Module {
       elseif($beforefield) $fg->insertBefore($field, $beforefield);
       else $fg->add($field);
       $fg->save();
+    }
+
+    /**
+     * Add fields to template.
+     * 
+     * Simple:
+     * $rm->addFieldsToTemplate(['field1', 'field2'], 'yourtemplate');
+     * 
+     * Add fields at special positions:
+     * $rm->addFieldsToTemplate([
+     *   'field1',
+     *   'field4' => 'field3', // this will add field4 after field3
+     * ], 'yourtemplate');
+     *
+     * @param array $fields
+     * @param string $template
+     * @return void
+     */
+    public function addFieldsToTemplate($fields, $template) {
+      foreach($fields as $k=>$v) {
+        // if the key is an integer, it's a simple field
+        if(is_int($k)) $this->addFieldToTemplate($v, $template);
+        else $this->addFieldToTemplate($k, $template, $v);
+      }
     }
 
     /**
@@ -341,6 +379,7 @@ class RockMigrations extends WireData implements Module {
     // }
 
   /* ##### templates ##### */
+
     /**
      * Create a new ProcessWire Template
      *
@@ -348,7 +387,21 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function createTemplate($name) {
-      d("This will create the template $name. Those helper functions are not implemented yet - I'm open to suggestions!");
+      $t = $this->templates->get((string)$name);
+      if($t) return $t;
+
+      // create new fieldgroup
+      $fg = $this->wire(new Fieldgroup());
+      $fg->name = $name;
+      $fg->save();
+
+      // create new template
+      $t = $this->wire(new Template());
+      $t->name = $name;
+      $t->fieldgroup = $fg;
+      $t->save();
+
+      return $t;
     }
 
     /**
@@ -377,13 +430,82 @@ class RockMigrations extends WireData implements Module {
       $fg = $this->fieldgroups->get($name);
       $this->fieldgroups->delete($fg);
     }
+    
+    /**
+     * Set data of a template.
+     * 
+     * TODO: Set data in template context.
+     * 
+     * Multilang is also possible:
+     * $rm->setTemplateData('yourtemplate', [
+     *   'label' => 'foo', // default language
+     *   'label1021' => 'bar', // other language
+     * ]);
+     *
+     * @param Template|string $template
+     * @param array $data
+     * @return void
+     */
+    public function setTemplateData($template, $data) {
+      $template = $this->templates->get((string)$template);
+      if(!$template) throw new WireException("template not found!");
+      foreach($data as $k=>$v) $template->{$k} = $v;
+      $template->save();
+      return $template;
+    }
   
   /* ##### pages ##### */
 
     /**
+     * Create a new Page.
+     * 
+     * If the page exists it will return the existing page.
+     * All available languages will be set active by default for this page.
+     *
+     * @param string $title
+     * @param string $name
+     * @param Template|string $template
+     * @param Page|string $parent
+     * @return void
+     */
+    public function createPage($title, $name, $template, $parent) {
+      $page = $this->pages->get([
+        'name' => $name,
+        'template' => $template,
+        'parent' => $parent,
+      ]);
+      if($page->id) return $page;
+
+      // create a new page
+      $p = $this->wire(new Page());
+      $p->template = $template;
+      $p->title = $title;
+      $p->name = $name;
+      $p->parent = $parent;
+      $p->save();
+
+      // enable all languages for this page
+      $this->enableAllLanguagesForPage($p);
+
+      return $p;
+    }
+
+    /**
+     * Enable all languages for given page.
+     *
+     * @param Page|string $page
+     * @return void
+     */
+    public function enableAllLanguagesForPage($page) {
+      $page = $this->pages->get((string)$page);
+      foreach ($this->languages as $lang) $page->set("status$lang", 1);
+      $page->save();
+    }
+
+    /**
      * Delete the given page including all children.
      *
-     * @param Page $page
+     * @param Page|string $page
      * @return void
      */
     public function deletePage($page) {
@@ -393,6 +515,7 @@ class RockMigrations extends WireData implements Module {
       
       // make sure we can delete the page and delete it
       // we also need to make sure that all descendants of this page are deletable
+      // todo: make this recursive?
       $all = $this->wire(new PageArray());
       $all->add($page);
       $all->add($this->pages->find("has_parent=$page"));
