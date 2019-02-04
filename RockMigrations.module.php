@@ -61,7 +61,7 @@ class RockMigrations extends WireData implements Module {
 
     // check mode and log request
     $mode = version_compare($from, $to) > 0 ? 'downgrade' : 'upgrade';
-    $this->log("Executing $mode $from to $to for module " . $this->module);
+    $this->log("Executing $mode $from   -->   $to for module " . $this->module);
     
     // early exit if no migrations
     $count = 0;
@@ -88,13 +88,13 @@ class RockMigrations extends WireData implements Module {
         AND version_compare($version, $to) <= 0) {
         // this migration is part of the upgrade, so run it
         // this either calls upgrade() or downgrade() of the php file
-        $this->log("Executing $mode $version");
 
         // make sure outputformatting is off for all migrations
         $this->pages->of(false);
 
         // execute the migrations
         $migration = $this->getMigration($version);
+        $this->log("Executing $mode {$migration->file}");
         $migration->{$mode}->__invoke($this);
 
         // increase count
@@ -134,7 +134,7 @@ class RockMigrations extends WireData implements Module {
    * @param string $version
    * @return RockMigration
    */
-  private function getMigration($version) {
+  public function getMigration($version) {
     $migration = new RockMigration();
     $migration->version = $version;
     
@@ -142,7 +142,11 @@ class RockMigrations extends WireData implements Module {
     $file = $this->getMigrationsPath().$version.".php";
     $upgrade = function(){};
     $downgrade = function(){};
-    if(is_file($file)) include($file);
+    $migration->file = null;
+    if(is_file($file)) {
+      include($file);
+      $migration->file = $file;
+    }
     $migration->upgrade = $upgrade;
     $migration->downgrade = $downgrade;
 
