@@ -709,12 +709,34 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Install module.
+     * If an URL is provided the module will be downloaded before installation.
      *
      * @param string $name
+     * @param string $url
      * @return void
      */
-    public function installModule($name) {
-      $this->modules->install($name);
+    public function installModule($name, $url = null) {
+      // if the module is already installed we return it
+      $module = $this->modules->get((string)$name);
+      if($module) return $module;
+
+      // if an url was provided, download the module
+      if($url) $this->downloadModule($url);
+
+      // install and return the module
+      return $this->modules->install($name);
+    }
+
+    /**
+     * Download module from url.
+     *
+     * @param string $url
+     * @return void
+     */
+    public function downloadModule($url) {
+      require_once($this->config->paths->modules . "Process/ProcessModule/ProcessModuleInstall.php");
+      $install = $this->wire(new ProcessModuleInstall());
+      $install->downloadModule($url);
     }
     
     /**
@@ -724,7 +746,19 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function uninstallModule($name) {
-      $this->modules->uninstall($name);
+      $this->modules->uninstall((string)$name);
+    }
+
+    /**
+     * Delete module.
+     *
+     * @param string $name
+     * @return void
+     */
+    public function deleteModule($name) {
+      $module = $this->modules->get((string)$name);
+      $this->uninstallModule($name);
+      $this->files->rmdir($this->config->paths($module), true);
     }
 
   /* ##### languages ##### */
