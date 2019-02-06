@@ -541,11 +541,12 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function addPermissionToRole($permission, $role) {
-      $role = $this->roles->get($role);
+      $role = $this->roles->get((string)$role);
       $role->of(false);
       $role->addPermission($permission);
       return $role->save();
     }
+
     /**
      * Remove a permission from given role.
      *
@@ -554,7 +555,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function removePermissionFromRole($permission, $role) {
-      $role = $this->roles->get($role);
+      $role = $this->roles->get((string)$role);
       $role->of(false);
       $role->removePermission($permission);
       return $role->save();
@@ -569,7 +570,7 @@ class RockMigrations extends WireData implements Module {
      */
     public function createPermission($name, $description = null) {
       // if the permission exists return it
-      $permission = $this->permissions->get($name);
+      $permission = $this->permissions->get((string)$name);
       if(!$permission->id) $permission = $this->permissions->add($name);
       $permission->setAndSave('title', $description);
       return $permission;
@@ -585,6 +586,36 @@ class RockMigrations extends WireData implements Module {
       $permission = $this->permissions->get((string)$permission);
       if(!$permission->id) return;
       $this->permissions->delete($permission);
+    }
+
+    /**
+     * Create role with given name.
+     *
+     * @param string $name
+     * @param array $permissions
+     * @return void
+     */
+    public function createRole($name, $permissions = []) {
+      // if the role exists return it
+      $role = $this->roles->get((string)$name);
+      if(!$role->id) $role = $this->roles->add($name);
+
+      // add permissions
+      foreach($permissions as $permission) $this->addPermissionToRole($permission, $role);
+
+      return $role;
+    }
+
+    /**
+     * Delete the given role.
+     *
+     * @param Role|string $role
+     * @return void
+     */
+    public function deleteRole($role) {
+      $role = $this->roles->get((string)$role);
+      if(!$role->id) return;
+      $this->roles->delete($role);
     }
 
   /* ##### users ##### */
