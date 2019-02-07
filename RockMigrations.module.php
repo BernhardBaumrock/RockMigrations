@@ -665,6 +665,17 @@ class RockMigrations extends WireData implements Module {
       $user->save();
     }
 
+    /**
+     * Add roles to user.
+     *
+     * @param array $roles
+     * @param User|string $user
+     * @return void
+     */
+    public function addRolesToUser($roles, $user) {
+      foreach($roles as $role) $this->addRoleToUser($role, $user);
+    }
+
   /* ##### modules ##### */
 
     /**
