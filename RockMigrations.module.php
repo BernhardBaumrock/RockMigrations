@@ -109,6 +109,29 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
+   * Test upgrade for given version.
+   * This will execute the downgrade and then the upgrade of only this version.
+   *
+   * @param string $version
+   * @return void
+   */
+  public function testUpgrade($version) {
+    // check if module is set
+    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
+
+    // get migration
+    $migration = $this->getMigration($version);
+    if(!$migration) throw new WireException("Migration $version not found");
+    
+    // now we execute the down and upgrade
+    // we do use the internal executeUpgrade function to always use the same code
+    // it changes the language for example
+    $prev = @$migration->getPrev()->version;
+    $this->executeUpgrade($version, $prev);
+    $this->executeUpgrade($prev, $version);
+  }
+
+  /**
    * Execute all Upgrade Scripts on Installation
    *
    * @return void
@@ -137,6 +160,7 @@ class RockMigrations extends WireData implements Module {
   public function getMigration($version) {
     $migration = new RockMigration();
     $migration->version = $version;
+    $migration->object = $this;
     
     // find according php file
     $file = $this->getMigrationsPath().$version.".php";
@@ -278,6 +302,7 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Set data of a field.
+     * If a template is provided the data is set in template context only.
      * 
      * TODO: Set data in template context.
      * 
@@ -289,12 +314,30 @@ class RockMigrations extends WireData implements Module {
      *
      * @param Field|string $field
      * @param array $data
+     * @param Template|string $template
      * @return void
      */
-    public function setFieldData($field, $data) {
+    public function setFieldData($field, $data, $template = null) {
       $field = $this->fields->get((string)$field);
       if(!$field) throw new WireException("Field not found!");
-      foreach($data as $k=>$v) $field->{$k} = $v;
+
+      // get template
+      if($template) {
+        $template = $this->templates->get((string)$template);
+        if(!$template) throw new WireException("Template was set but not found");
+      }
+
+      // set data
+      if(!$template) {
+        // set field data directly
+        foreach($data as $k=>$v) $field->{$k} = $v;
+      }
+      else {
+        // set field data in template context
+        $fg = $template->fieldgroup;
+        $fg->setFieldContextArray($field->id, $data);
+        $fg->saveContext();
+      }
       $field->save();
       return $field;
     }
@@ -470,15 +513,20 @@ class RockMigrations extends WireData implements Module {
      * @param string $name
      * @param Template|string $template
      * @param Page|string $parent
+     * @param array $status
      * @return void
      */
-    public function createPage($title, $name, $template, $parent) {
+    public function createPage($title, $name, $template, $parent, $status = []) {
       $page = $this->pages->get([
         'name' => $name,
         'template' => $template,
         'parent' => $parent,
       ]);
-      if($page->id) return $page;
+      if($page->id) {
+        $page->status($status);
+        $page->save();
+        return $page;
+      }
 
       // create a new page
       $p = $this->wire(new Page());
@@ -486,6 +534,7 @@ class RockMigrations extends WireData implements Module {
       $p->title = $title;
       $p->name = $name;
       $p->parent = $parent;
+      $p->status($status);
       $p->save();
 
       // enable all languages for this page
