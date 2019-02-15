@@ -83,8 +83,9 @@ Create a folder `RockMigrations` in the root directory of your module. You can t
 
 ![screenshot](https://i.imgur.com/ErjEicZ.png)
 
-Code completion:
-![code completion](https://i.imgur.com/7eWpE4V.png)
+If you are using code completion in your IDE you'll get nice and helpful suggestions of what you can do:
+
+![code completion](https://i.imgur.com/rwr6SBJ.png)
 
 ## Demo Code for Tracy Console:
 
