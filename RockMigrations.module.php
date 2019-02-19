@@ -222,26 +222,48 @@ class RockMigrations extends WireData implements Module {
      *
      * @param string $name
      * @param string $type
+     * @param array $options
      * @return void
      */
-    public function createField($name, $typename) {
+    public function createField($name, $typename, $options = null) {
       $field = $this->fields->get((string)$name);
-      if($field) return $field;
-
-      // setup fieldtype
-      $type = $this->modules->get($typename);
-      if(!$type) {
-        // shortcut types are possible, eg "text" for "FieldtypeText"
-        $type = "Fieldtype".ucfirst($typename);
-        $type = $this->modules->get($type);
-        if(!$type) throw new WireException("Invalid Fieldtype");
+      if(!$field) {
+        // setup fieldtype
+        $type = $this->modules->get($typename);
+        if(!$type) {
+          // shortcut types are possible, eg "text" for "FieldtypeText"
+          $type = "Fieldtype".ucfirst($typename);
+          $type = $this->modules->get($type);
+          if(!$type) throw new WireException("Invalid Fieldtype");
+        }
+        
+        // create the new field
+        $name = strtolower($name);
+        $field = $this->wire(new Field());
+        $field->type = $type;
+        $field->name = $name;
+        $field->save();
       }
+
+      // set options
+      if($options) $field = $this->setFieldData($field, $options);
+
+      return $field;
+    }
+
+    /**
+     * Set options of an options field via string.
+     *
+     * @param Field|string $name
+     * @param string $options
+     * @return void
+     */
+    public function setFieldOptionsString($name, $options) {
+      $field = $this->fields->get((string)$name);
+      if(!$field) throw new WireException("Field not found");
       
-      // create the new field
-      $name = strtolower($name);
-      $field = $this->wire(new Field());
-      $field->type = $type;
-      $field->name = $name;
+      $manager = $this->wire(new SelectableOptionManager());
+      $manager->setOptionsString($field, $options, false);
       $field->save();
 
       return $field;
