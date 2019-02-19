@@ -365,6 +365,39 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Delete template overrides for the given field.
+     * 
+     * Example usage:
+     * Delete custom field width for 'myfield' and 'mytemplate':
+     * $rm->deleteFieldTemplateOverrides('myfield', [
+     *   'mytemplate' => ['columnWidth'],
+     * ]);
+     *
+     * @param Field|string $field
+     * @param array $templatesettings
+     * @return void
+     */
+    public function deleteFieldTemplateOverrides($field, $templatesettings) {
+      $field = $this->fields->get((string)$field);
+      if(!$field) throw new WireException("Field not found!");
+
+      // loop data
+      foreach($templatesettings as $tpl=>$val) {
+        // get template
+        $template = $this->templates->get((string)$tpl);
+        if(!$template) throw new WireException("Template $tpl not found");
+        
+        // set field data in template context
+        $fg = $template->fieldgroup;
+        $data = $fg->getFieldContextArray($field->id);
+        foreach($val as $setting) unset($data[$setting]);
+        $fg->setFieldContextArray($field->id, $data);
+        $fg->saveContext();
+      }
+      
+    }
+
+    /**
      * Add field to template.
      *
      * @param Field|string $field
