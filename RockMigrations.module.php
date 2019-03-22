@@ -47,14 +47,25 @@ class RockMigrations extends WireData implements Module {
   /**
    * Execute the upgrade from one version to another.
    * Does also execute on downgrades.
+   * 
+   * If a module is set, we execute this upgrade on that module and not on the current.
    *
    * @param string $from
    * @param string $to
+   * @param Module|string $module
+   * 
    * @return int number of migrations that where executed
    */
-  public function executeUpgrade($from, $to) {
+  public function executeUpgrade($from, $to, $module = null) {
+    $currentModule = $this->module;
+    if($module) {
+      $module = $this->modules->get((string)$module);
+      if(!$module) throw new WireException("Module not found!");
+      $this->module = $module;
+    }
+
     // check if module is set
-    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
+    if(!$this->module) throw new WireException("Module invalid or not set!");
     
     // get migrations
     $migrations = $this->getMigrations();
@@ -104,6 +115,9 @@ class RockMigrations extends WireData implements Module {
 
     // change language back to original
     $this->user->setAndSave('language', $lang);
+
+    // reset the module to it's initial state
+    if($module) $this->module = $currentModule;
 
     return $count;
   }
