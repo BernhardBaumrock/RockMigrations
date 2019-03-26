@@ -551,6 +551,8 @@ class RockMigrations extends WireData implements Module {
      * Set data of a template.
      * 
      * TODO: Set data in template context.
+     * TODO: Wording is inconsistant! Set = Update, because it only sets
+     * provided key value pairs and not the whole array
      * 
      * Multilang is also possible:
      * $rm->setTemplateData('yourtemplate', [
