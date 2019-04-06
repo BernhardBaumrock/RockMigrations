@@ -9,6 +9,9 @@ I want it to be
 ## Roadmap
 
 * Error handling if upgrades fail?
+* Handle order of Migrations from different Modules
+* GUI for executing Migrations
+* Implement a "dry run/test run" feature (eg to check for field name collisions)
 
 ## Example
 
