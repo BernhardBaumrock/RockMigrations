@@ -56,7 +56,7 @@ class RockMigrations extends WireData implements Module {
    * 
    * @return int number of migrations that where executed
    */
-  public function executeUpgrade($from, $to, $module = null) {
+  public function execute($from, $to, $module = null) {
     $currentModule = $this->module;
     if($module) {
       $module = $this->modules->get((string)$module);
@@ -90,7 +90,7 @@ class RockMigrations extends WireData implements Module {
     // this is necessary that field values are set in the default language,
     // eg. when creating a new page and setting the title of a multi-lang page.
     $lang = $this->user->language;
-    $this->user->language = $this->languages->getDefault();
+    if($this->languages) $this->user->language = $this->languages->getDefault();
     
     // now execute all available upgrades step by step
     foreach($migrations as $version) {
@@ -123,13 +123,38 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
+   * for backwards compatibility.
+   */
+  public function executeUpgrade($from, $to, $module = null) {
+    return $this->execute($from, $to, $module);
+  }
+
+  /**
    * Test upgrade for given version.
    * This will execute the downgrade and then the upgrade of only this version.
    *
    * @param string $version
    * @return void
    */
+  public function test($version) {
+    $this->down($version);
+    $this->up($version);
+  }
+
+  /**
+   * For backwards compatibility.
+   */
   public function testUpgrade($version) {
+    $this->test($version);
+  }
+
+  /**
+   * Execute upgrade of given version.
+   *
+   * @param string $version
+   * @return void
+   */
+  public function up($version) {
     // check if module is set
     if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
 
@@ -137,12 +162,28 @@ class RockMigrations extends WireData implements Module {
     $migration = $this->getMigration($version);
     if(!$migration) throw new WireException("Migration $version not found");
     
-    // now we execute the down and upgrade
-    // we do use the internal executeUpgrade function to always use the same code
-    // it changes the language for example
+    // now we execute the upgrade
+    $prev = @$migration->getPrev()->version;
+    $this->executeUpgrade($prev, $version);
+  }
+  
+  /**
+   * Execute downgrade of given version.
+   *
+   * @param string $version
+   * @return void
+   */
+  public function down($version) {
+    // check if module is set
+    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
+
+    // get migration
+    $migration = $this->getMigration($version);
+    if(!$migration) throw new WireException("Migration $version not found");
+    
+    // now we execute the upgrade
     $prev = @$migration->getPrev()->version;
     $this->executeUpgrade($version, $prev);
-    $this->executeUpgrade($prev, $version);
   }
 
   /**
