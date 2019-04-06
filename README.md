@@ -6,7 +6,7 @@ Benjamin Milde wrote a great blog post about that: https://processwire.com/blog/
 
 ## Why another migrations module?
 
-Benjamin's Migrations Module is great (https://modules.processwire.com/modules/migrations/), but there where two things that I didn't like:
+Benjamin's Migrations Module is great (https://modules.processwire.com/modules/migrations/), but there were two things that I didn't like:
 
 * For me, it didn't feel easy to use
 * You have to define Migrations in a central place and I wanted to be able to use Migrations in my Modules
