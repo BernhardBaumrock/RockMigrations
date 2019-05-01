@@ -293,6 +293,7 @@ class RockMigrations extends WireData implements Module {
         }
         
         // create the new field
+        if(strtolower($name) !== $name) throw new WireException("Fieldname must be lowercase!");
         $name = strtolower($name);
         $field = $this->wire(new Field());
         $field->type = $type;
@@ -381,8 +382,6 @@ class RockMigrations extends WireData implements Module {
      * Set data of a field.
      * If a template is provided the data is set in template context only.
      * 
-     * TODO: Set data in template context.
-     * 
      * Multilang is also possible:
      * $rm->setFieldData('yourfield', [
      *   'label' => 'foo', // default language
@@ -412,7 +411,8 @@ class RockMigrations extends WireData implements Module {
       else {
         // set field data in template context
         $fg = $template->fieldgroup;
-        $fg->setFieldContextArray($field->id, $data);
+        $current = $fg->getFieldContextArray($field->id);
+        $fg->setFieldContextArray($field->id, array_merge($current, $data));
         $fg->saveContext();
       }
       $field->save();
@@ -699,13 +699,30 @@ class RockMigrations extends WireData implements Module {
      *
      * @param string|int $permission
      * @param string|int $role
-     * @return void
+     * @return boolean
      */
     public function addPermissionToRole($permission, $role) {
       $role = $this->roles->get((string)$role);
       $role->of(false);
       $role->addPermission($permission);
       return $role->save();
+    }
+
+    /**
+     * Add an array of permissions to an array of roles.
+     *
+     * @param array|string $permissions
+     * @param array|string $roles
+     * @return void
+     */
+    public function addPermissionsToRoles($permissions, $roles) {
+      if(!is_array($permissions)) $permissions = [(string)$permissions];
+      if(!is_array($roles)) $roles = [(string)$roles];
+      foreach($permissions as $permission) {
+        foreach ($roles as $role) {
+          $this->addPermissionToRole($permission, $role);
+        }
+      }
     }
 
     /**
@@ -720,6 +737,23 @@ class RockMigrations extends WireData implements Module {
       $role->of(false);
       $role->removePermission($permission);
       return $role->save();
+    }
+
+    /**
+     * Remove an array of permissions to an array of roles.
+     *
+     * @param array|string $permissions
+     * @param array|string $roles
+     * @return void
+     */
+    public function removePermissionsToRoles($permissions, $roles) {
+      if(!is_array($permissions)) $permissions = [(string)$permissions];
+      if(!is_array($roles)) $roles = [(string)$roles];
+      foreach($permissions as $permission) {
+        foreach ($roles as $role) {
+          $this->removePermissionToRole($permission, $role);
+        }
+      }
     }
 
     /**
