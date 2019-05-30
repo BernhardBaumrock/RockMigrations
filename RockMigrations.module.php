@@ -767,12 +767,12 @@ class RockMigrations extends WireData implements Module {
      * @param array|string $roles
      * @return void
      */
-    public function removePermissionsToRoles($permissions, $roles) {
+    public function removePermissionsFromRoles($permissions, $roles) {
       if(!is_array($permissions)) $permissions = [(string)$permissions];
       if(!is_array($roles)) $roles = [(string)$roles];
       foreach($permissions as $permission) {
         foreach ($roles as $role) {
-          $this->removePermissionToRole($permission, $role);
+          $this->removePermissionFromRole($permission, $role);
         }
       }
     }
