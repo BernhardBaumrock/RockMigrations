@@ -45,9 +45,9 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * Execute the upgrade from one version to another.
-   * Does also execute on downgrades.
+   * Execute the upgrade from one version to another
    * 
+   * Does also execute on downgrades.
    * If a module is set, we execute this upgrade on that module and not on the current.
    *
    * @param string $from
@@ -123,14 +123,15 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * for backwards compatibility.
+   * for backwards compatibility
    */
   public function executeUpgrade($from, $to, $module = null) {
     return $this->execute($from, $to, $module);
   }
 
   /**
-   * Test upgrade for given version.
+   * Test upgrade for given version
+   * 
    * This will execute the downgrade and then the upgrade of only this version.
    *
    * @param string $version
@@ -142,14 +143,14 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * For backwards compatibility.
+   * For backwards compatibility
    */
   public function testUpgrade($version) {
     $this->test($version);
   }
 
   /**
-   * Execute upgrade of given version.
+   * Execute upgrade of given version
    *
    * @param string $version
    * @return void
@@ -168,7 +169,7 @@ class RockMigrations extends WireData implements Module {
   }
   
   /**
-   * Execute downgrade of given version.
+   * Execute downgrade of given version
    *
    * @param string $version
    * @return void
@@ -273,7 +274,7 @@ class RockMigrations extends WireData implements Module {
   /* ##### fields ##### */
 
     /**
-     * Create a field of the given type.
+     * Create a field of the given type
      *
      * @param string $name
      * @param string $type
@@ -308,7 +309,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Set options of an options field via string.
+     * Set options of an options field via string
      *
      * @param Field|string $name
      * @param string $options
@@ -326,7 +327,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Delete the given field.
+     * Delete the given field
      *
      * @param string $fieldname
      * @return void
@@ -350,7 +351,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Set the language value of the given field.
+     * Set the language value of the given field
      * 
      * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
      *   'default' => 'Therapie',
@@ -379,7 +380,8 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Set data of a field.
+     * Set data of a field
+     * 
      * If a template is provided the data is set in template context only.
      * 
      * Multilang is also possible:
@@ -420,7 +422,26 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Delete template overrides for the given field.
+     * Set field order at given template
+     * 
+     * The first field is always the reference for all other fields.
+     *
+     * @param array $fields
+     * @param Template|string $template
+     * @return void
+     */
+    public function setFieldOrder($fields, $template) {
+      $template = $this->templates->get((string)$template);
+      if(!$template) throw new WireException("Template not found");
+
+      foreach($fields as $i => $field) {
+        if(!$i) continue;
+        $this->addFieldToTemplate($field, $template, $fields[$i-1]);
+      }
+    }
+
+    /**
+     * Delete template overrides for the given field
      * 
      * Example usage:
      * Delete custom field width for 'myfield' and 'mytemplate':
@@ -453,7 +474,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Add field to template.
+     * Add field to template
      *
      * @param Field|string $field
      * @param Template|string $template
@@ -501,7 +522,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Remove Field from Template.
+     * Remove Field from Template
      *
      * @param Field|string $field
      * @param Template|string $template
@@ -520,7 +541,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     // /**
-    //  * Set the type of a field.
+    //  * Set the type of a field
     //  * 
     //  * DEPRECATED, use setFieldData instead!
     //  *
@@ -589,7 +610,7 @@ class RockMigrations extends WireData implements Module {
     }
     
     /**
-     * Set data of a template.
+     * Set data of a template
      * 
      * TODO: Set data in template context.
      * TODO: Wording is inconsistant! Set = Update, because it only sets
@@ -616,7 +637,7 @@ class RockMigrations extends WireData implements Module {
   /* ##### pages ##### */
 
     /**
-     * Create a new Page.
+     * Create a new Page
      * 
      * If the page exists it will return the existing page.
      * All available languages will be set active by default for this page.
@@ -656,7 +677,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Enable all languages for given page.
+     * Enable all languages for given page
      *
      * @param Page|string $page
      * @return void
@@ -695,7 +716,7 @@ class RockMigrations extends WireData implements Module {
   /* ##### permissions ##### */
 
     /**
-     * Add a permission to given role.
+     * Add a permission to given role
      *
      * @param string|int $permission
      * @param string|int $role
@@ -709,7 +730,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Add an array of permissions to an array of roles.
+     * Add an array of permissions to an array of roles
      *
      * @param array|string $permissions
      * @param array|string $roles
@@ -726,7 +747,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Remove a permission from given role.
+     * Remove a permission from given role
      *
      * @param string|int $permission
      * @param string|int $role
@@ -740,7 +761,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Remove an array of permissions to an array of roles.
+     * Remove an array of permissions to an array of roles
      *
      * @param array|string $permissions
      * @param array|string $roles
@@ -757,7 +778,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Create permission with given name.
+     * Create permission with given name
      *
      * @param string $name
      * @param string $description
@@ -772,7 +793,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Delete the given permission.
+     * Delete the given permission
      *
      * @param Permission|string $permission
      * @return void
@@ -784,7 +805,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Create role with given name.
+     * Create role with given name
      *
      * @param string $name
      * @param array $permissions
@@ -802,7 +823,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Delete the given role.
+     * Delete the given role
      *
      * @param Role|string $role
      * @return void
@@ -816,7 +837,8 @@ class RockMigrations extends WireData implements Module {
   /* ##### users ##### */
 
     /**
-     * Create a PW user with given password.
+     * Create a PW user with given password
+     * 
      * If the user already exists it will return this user.
      *
      * @param string $username
@@ -834,7 +856,7 @@ class RockMigrations extends WireData implements Module {
     }
     
     /**
-     * Delete a PW user.
+     * Delete a PW user
      *
      * @param string $username
      * @return void
@@ -861,7 +883,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Add roles to user.
+     * Add roles to user
      *
      * @param array $roles
      * @param User|string $user
@@ -874,7 +896,7 @@ class RockMigrations extends WireData implements Module {
   /* ##### modules ##### */
 
     /**
-     * Set module config data.
+     * Set module config data
      *
      * @param string $module
      * @param array $data
@@ -887,7 +909,7 @@ class RockMigrations extends WireData implements Module {
     }
     
     /**
-     * Update module config data.
+     * Update module config data
      *
      * @param string $module
      * @param array $data
@@ -903,7 +925,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Get module config data.
+     * Get module config data
      *
      * @param string $module
      * @return array
@@ -914,7 +936,8 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Install module.
+     * Install module
+     * 
      * If an URL is provided the module will be downloaded before installation.
      *
      * @param string $name
@@ -934,7 +957,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Download module from url.
+     * Download module from url
      *
      * @param string $url
      * @return void
@@ -946,7 +969,7 @@ class RockMigrations extends WireData implements Module {
     }
     
     /**
-     * Uninstall module.
+     * Uninstall module
      *
      * @param string|Module $name
      * @return void
@@ -956,7 +979,7 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Delete module.
+     * Delete module
      *
      * @param string $name
      * @return void
