@@ -368,6 +368,16 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Delete given fields
+     *
+     * @param array $fields
+     * @return void
+     */
+    public function deleteFields($fields) {
+      foreach($fields as $field) $this->deleteField($field);
+    }
+
+    /**
      * Set the language value of the given field
      * 
      * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
