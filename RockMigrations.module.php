@@ -274,6 +274,24 @@ class RockMigrations extends WireData implements Module {
   /* ##### fields ##### */
 
     /**
+     * Get field by name
+     *
+     * @param Field|string $name
+     * @return mixed
+     */
+    public function getField($name, $exception = null) {
+      $field = $this->fields->get((string)$name);
+
+      // return field when found or no exception
+      if($field) return $field;
+      if($exception === false) return;
+      
+      // field was not found, throw exception
+      if(!$exception) $exception = "Field not found";
+      throw new WireException($exception);
+    }
+
+    /**
      * Create a field of the given type
      *
      * @param string $name
@@ -282,7 +300,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function createField($name, $typename, $options = null) {
-      $field = $this->fields->get((string)$name);
+      $field = $this->getField($name);
       if(!$field) {
         // setup fieldtype
         $type = $this->modules->get($typename);
@@ -316,8 +334,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function setFieldOptionsString($name, $options) {
-      $field = $this->fields->get((string)$name);
-      if(!$field) throw new WireException("Field not found");
+      $field = $this->getField($name);
       
       $manager = $this->wire(new SelectableOptionManager());
       $manager->setOptionsString($field, $options, false);
@@ -329,12 +346,12 @@ class RockMigrations extends WireData implements Module {
     /**
      * Delete the given field
      *
-     * @param string $fieldname
+     * @param string $name
      * @return void
      */
-    public function deleteField($fieldname) {
-      $field = $this->fields->get($fieldname);
-      if(!$field OR !$field->id) return;
+    public function deleteField($name) {
+      $field = $this->getField($name, false);
+      if(!$field) return;
 
       // make sure we can delete the field by removing all flags
       $field->flags = Field::flagSystemOverride;
@@ -366,9 +383,7 @@ class RockMigrations extends WireData implements Module {
     public function setFieldLanguageValue($page, $field, $data) {
       $page = $this->pages->get((string)$page);
       if(!$page->id) throw new WireException("Page not found!");
-
-      $field = $this->fields->get((string)$field);
-      if(!$field->id) throw new WireException("Field not found!");
+      $field = $this->getField($field);
       
       // set field value for all provided languages
       foreach($data as $lang=>$val) {
@@ -396,8 +411,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function setFieldData($field, $data, $template = null) {
-      $field = $this->fields->get((string)$field);
-      if(!$field) throw new WireException("Field not found!");
+      $field = $this->getField($field);
 
       // get template
       if($template) {
@@ -441,6 +455,30 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Move one field after another
+     *
+     * @param Field|string $field
+     * @param Field|string $after
+     * @param Template|string $template
+     * @return void
+     */
+    public function moveFieldAfter($field, $after, $template) {
+      $this->addFieldToTemplate($field, $template, $after);
+    }
+    
+    /**
+     * Move one field before another
+     *
+     * @param Field|string $field
+     * @param Field|string $before
+     * @param Template|string $template
+     * @return void
+     */
+    public function moveFieldBefore($field, $before, $template) {
+      $this->addFieldToTemplate($field, $template, null, $before);
+    }
+
+    /**
      * Delete template overrides for the given field
      * 
      * Example usage:
@@ -454,8 +492,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function deleteFieldTemplateOverrides($field, $templatesettings) {
-      $field = $this->fields->get((string)$field);
-      if(!$field) throw new WireException("Field not found!");
+      $field = $this->getField($field);
 
       // loop data
       foreach($templatesettings as $tpl=>$val) {
@@ -481,11 +518,8 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function addFieldToTemplate($field, $template, $afterfield = null, $beforefield = null) {
-      $field = $this->fields->get((string)$field);
-      if(!$field) throw new WireException("Field not found");
-      
-      $template = $this->templates->get((string)$template);
-      if(!$template) throw new WireException("Template not found");
+      $field = $this->getField($field);
+      $template = $this->getTemplate($template);
       
       $afterfield = $this->fields->get((string)$afterfield);
       $beforefield = $this->fields->get((string)$beforefield);
@@ -529,7 +563,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function removeFieldFromTemplate($field, $template) {
-      $field = $this->fields->get((string)$field);
+      $field = $this->getField($field, false);
       if(!$field) return;
       
       $template = $this->templates->get((string)$template);
@@ -540,23 +574,25 @@ class RockMigrations extends WireData implements Module {
       $fg->save();
     }
 
-    // /**
-    //  * Set the type of a field
-    //  * 
-    //  * DEPRECATED, use setFieldData instead!
-    //  *
-    //  * @param Field|string $field
-    //  * @param string $type
-    //  * @return void
-    //  */
-    // public function setFieldType($field, $type) {
-    //   $field = $this->fields->get((string)$field);
-    //   if(!$field->id) throw new WireException("Field not found!");
-    //   $field->type = $type;
-    //   $field->save();
-    // }
-
   /* ##### templates ##### */
+
+    /**
+     * Get template by name
+     *
+     * @param Template|string $name
+     * @return mixed
+     */
+    public function getTemplate($name, $exception = null) {
+      $template = $this->templates->get((string)$name);
+
+      // return template when found or no exception
+      if($template) return $template;
+      if($exception === false) return;
+      
+      // template was not found, throw exception
+      if(!$exception) $exception = "Template not found";
+      throw new WireException($exception);
+    }
 
     /**
      * Create a new ProcessWire Template
