@@ -300,7 +300,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function createField($name, $typename, $options = null) {
-      $field = $this->getField($name);
+      $field = $this->getField($name, false);
       if(!$field) {
         // setup fieldtype
         $type = $this->modules->get($typename);
