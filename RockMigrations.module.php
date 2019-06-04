@@ -287,7 +287,7 @@ class RockMigrations extends WireData implements Module {
       if($exception === false) return;
       
       // field was not found, throw exception
-      if(!$exception) $exception = "Field not found";
+      if(!$exception) $exception = "Field $name not found";
       throw new WireException($exception);
     }
 
@@ -451,12 +451,12 @@ class RockMigrations extends WireData implements Module {
      * The first field is always the reference for all other fields.
      *
      * @param array $fields
-     * @param Template|string $template
+     * @param Template|string $name
      * @return void
      */
-    public function setFieldOrder($fields, $template) {
-      $template = $this->templates->get((string)$template);
-      if(!$template) throw new WireException("Template not found");
+    public function setFieldOrder($fields, $name) {
+      $template = $this->templates->get((string)$name);
+      if(!$template) throw new WireException("Template $name not found");
 
       foreach($fields as $i => $field) {
         if(!$i) continue;
