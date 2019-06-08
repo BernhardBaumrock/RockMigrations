@@ -408,6 +408,7 @@ class RockMigrations extends WireData implements Module {
      * Set data of a field
      * 
      * If a template is provided the data is set in template context only.
+     * You can also provide an array of templates.
      * 
      * Multilang is also possible:
      * $rm->setFieldData('yourfield', [
@@ -417,17 +418,11 @@ class RockMigrations extends WireData implements Module {
      *
      * @param Field|string $field
      * @param array $data
-     * @param Template|string $template
+     * @param Template|array|string $template
      * @return void
      */
     public function setFieldData($field, $data, $template = null) {
       $field = $this->getField($field);
-
-      // get template
-      if($template) {
-        $template = $this->templates->get((string)$template);
-        if(!$template) throw new WireException("Template was set but not found");
-      }
 
       // set data
       if(!$template) {
@@ -435,12 +430,21 @@ class RockMigrations extends WireData implements Module {
         foreach($data as $k=>$v) $field->{$k} = $v;
       }
       else {
-        // set field data in template context
-        $fg = $template->fieldgroup;
-        $current = $fg->getFieldContextArray($field->id);
-        $fg->setFieldContextArray($field->id, array_merge($current, $data));
-        $fg->saveContext();
+        // make sure the template is set as array of strings
+        if(!is_array($template)) $template = [(string)$template];
+
+        foreach($template as $t) {
+          $tpl = $this->templates->get((string)$t);
+          if(!$tpl) throw new WireException("Template $t not found");
+
+          // set field data in template context
+          $fg = $tpl->fieldgroup;
+          $current = $fg->getFieldContextArray($field->id);
+          $fg->setFieldContextArray($field->id, array_merge($current, $data));
+          $fg->saveContext();
+        }
       }
+
       $field->save();
       return $field;
     }
