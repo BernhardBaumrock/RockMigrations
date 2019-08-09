@@ -974,12 +974,12 @@ class RockMigrations extends WireData implements Module {
     /**
      * Set module config data
      *
-     * @param string $module
+     * @param string|Module $module
      * @param array $data
      * @return Module
      */
     public function setModuleConfig($module, $data) {
-      $module = $this->modules->get($module);
+      $module = $this->modules->get((string)$module);
       if(!$module) throw new WireException("Module not found!");
       $this->modules->saveConfig($module, $data);
     }
@@ -987,17 +987,17 @@ class RockMigrations extends WireData implements Module {
     /**
      * Update module config data
      *
-     * @param string $module
+     * @param string|Module $module
      * @param array $data
      * @return Module
      */
     public function updateModuleConfig($module, $data) {
-      $module = $this->modules->get($module);
+      $module = $this->modules->get((string)$module);
       if(!$module) throw new WireException("Module not found!");
-
+      
       $newdata = $this->getModuleConfig($module);
       foreach($data as $k=>$v) $newdata[$k] = $v;
-      $this->modules->saveConfig($module, $newdata);
+      $this->modules->saveConfig((string)$module, $newdata);
     }
 
     /**
