@@ -139,6 +139,7 @@ class RockMigrations extends WireData implements Module {
    */
   public function test($version) {
     $this->down($version);
+    $this->modules->refresh();
     $this->up($version);
   }
 
@@ -680,6 +681,31 @@ class RockMigrations extends WireData implements Module {
       $template = $this->templates->get((string)$template);
       if(!$template) throw new WireException("template not found!");
       foreach($data as $k=>$v) $template->{$k} = $v;
+      $template->save();
+      return $template;
+    }
+
+    /**
+     * Set parent child family settings for two templates
+     */
+    public function setParentChild($parent, $child) {
+      $this->setTemplateData($child, [
+        'noChildren' => 1,
+        'parentTemplates' => [(string)$parent],
+      ]);
+      $this->setTemplateData($parent, [
+        'noParents' => -1, // only one page
+        'childTemplates' => [(string)$child],
+        'childNameFormat' => 'title',
+      ]);
+    }
+
+    /**
+     * Set template icon
+     */
+    public function setIcon($template, $icon) {
+      $template = $this->templates->get((string)$template);
+      $template->setIcon($icon);
       $template->save();
       return $template;
     }
