@@ -608,6 +608,26 @@ class RockMigrations extends WireData implements Module {
       $fg->save();
     }
 
+    /**
+     * Change type of field
+     * @param Field|string $field
+     * @param string $type
+     * @param bool $keepSettings
+     * @return Field
+     */
+    public function changeFieldtype($field, $type, $keepSettings = true) {
+      $field = $this->getField($field);
+
+      // if type is already set, return early
+      if($field->type == $type) return $field;
+
+      // change type and save field
+      $field->type = $type;
+      $this->fields->changeFieldtype($field, $keepSettings);
+      $field->save();
+      return $field;
+    }
+
   /* ##### templates ##### */
 
     /**
