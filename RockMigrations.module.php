@@ -319,6 +319,11 @@ class RockMigrations extends WireData implements Module {
         $field->type = $type;
         $field->name = $name;
         $field->save();
+
+        // create end field for fieldsets
+        if($field->type instanceof FieldtypeFieldsetOpen) {
+          $field->type->getFieldsetCloseField($field, true);
+        }
       }
 
       // set options
@@ -353,6 +358,12 @@ class RockMigrations extends WireData implements Module {
     public function deleteField($name) {
       $field = $this->getField($name, false);
       if(!$field) return;
+
+      // delete _END field for fieldsets first
+      if($field->type instanceof FieldtypeFieldsetOpen) {
+        $closer = $field->type->getFieldsetCloseField($field, false);
+        $this->deleteField($closer);
+      }
 
       // make sure we can delete the field by removing all flags
       $field->flags = Field::flagSystemOverride;
@@ -536,13 +547,21 @@ class RockMigrations extends WireData implements Module {
       $field = $this->getField($field);
       $template = $this->getTemplate($template);
       
-      $afterfield = $this->fields->get((string)$afterfield);
-      $beforefield = $this->fields->get((string)$beforefield);
+      $afterfield = $this->getField($afterfield, false);
+      $beforefield = $this->getField($beforefield, false);
       $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
 
       if($afterfield) $fg->insertAfter($field, $afterfield);
       elseif($beforefield) $fg->insertBefore($field, $beforefield);
       else $fg->add($field);
+
+      // add end field for fieldsets
+      if($field->type instanceof FieldtypeFieldsetOpen
+        AND !$field->type instanceof FieldtypeFieldsetClose) {
+        $closer = $field->type->getFieldsetCloseField($field, false);
+        $this->addFieldToTemplate($closer, $template, $field);
+      }
+
       $fg->save();
     }
 
