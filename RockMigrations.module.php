@@ -281,6 +281,10 @@ class RockMigrations extends WireData implements Module {
      * @return mixed
      */
     public function getField($name, $exception = null) {
+      if($name AND !is_string($name) AND !$name instanceof Field) {
+        $func = @debug_backtrace()[1]['function'];
+        throw new WireException("Invalid type set for field in $func");
+      }
       $field = $this->fields->get((string)$name);
 
       // return field when found or no exception
