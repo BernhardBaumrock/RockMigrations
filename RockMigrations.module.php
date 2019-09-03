@@ -773,6 +773,10 @@ class RockMigrations extends WireData implements Module {
      * @return Page
      */
     public function createPage($title, $name, $template, $parent, $status = []) {
+      // create pagename from page title if it is not set
+      if(!$name) $name = $this->sanitizer->pageName($title);
+
+      // get page if it exists
       $page = $this->pages->get([
         'name' => $name,
         'template' => $template,
@@ -834,6 +838,16 @@ class RockMigrations extends WireData implements Module {
         $p->save();
       }
       $this->pages->delete($page, true);
+    }
+
+    /**
+     * Delete pages matching the given selector
+     * @param mixed $selector
+     * @return void
+     */
+    public function deletePages($selector) {
+      $pages = $this->pages->find($selector);
+      foreach($pages as $page) $page->delete();
     }
 
   /* ##### permissions ##### */
