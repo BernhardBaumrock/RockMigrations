@@ -770,7 +770,7 @@ class RockMigrations extends WireData implements Module {
      * @param Template|string $template
      * @param Page|string $parent
      * @param array $status
-     * @return void
+     * @return Page
      */
     public function createPage($title, $name, $template, $parent, $status = []) {
       $page = $this->pages->get([
