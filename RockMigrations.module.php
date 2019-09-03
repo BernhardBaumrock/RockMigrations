@@ -656,9 +656,10 @@ class RockMigrations extends WireData implements Module {
      * Create a new ProcessWire Template
      *
      * @param string $name
+     * @param bool $addTitlefield
      * @return void
      */
-    public function createTemplate($name) {
+    public function createTemplate($name, $addTitlefield = true) {
       $t = $this->templates->get((string)$name);
       if($t) return $t;
 
@@ -672,6 +673,9 @@ class RockMigrations extends WireData implements Module {
       $t->name = $name;
       $t->fieldgroup = $fg;
       $t->save();
+
+      // add title field to this template
+      if($addTitlefield) $this->addFieldToTemplate('title', $t);
 
       return $t;
     }
