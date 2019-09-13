@@ -756,6 +756,30 @@ class RockMigrations extends WireData implements Module {
       $template->save();
       return $template;
     }
+
+    /**
+     * This renames a template and corresponding fieldgroup
+     * @return Template
+     */
+    public function renameTemplate($oldname, $newname) {
+      $t = $this->templates->get((string)$oldname);
+
+      // if the new template already exists we return it
+      // this is important if you run one migration multiple times
+      // $bar = $rm->renameTemplate('foo', 'bar');
+      // $rm->setTemplateData($bar, [...]);
+      $newTemplate = $this->templates->get((string)$newname);
+      if($newTemplate) return $newTemplate;
+
+      $t->name = $newname;
+      $t->save();
+      
+      $fg = $t->fieldgroup;
+      $fg->name = $newname;
+      $fg->save();
+
+      return $t;
+    }
   
   /* ##### pages ##### */
 
