@@ -598,15 +598,19 @@ class RockMigrations extends WireData implements Module {
      *
      * @param Field|string $field
      * @param Template|string $template
+     * @param bool $force
      * @return void
      */
-    public function removeFieldFromTemplate($field, $template) {
+    public function removeFieldFromTemplate($field, $template, $force = false) {
       $field = $this->getField($field, false);
       if(!$field) return;
       
       $template = $this->templates->get((string)$template);
       if(!$template) return;
       $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
+
+      // remove global flag to force deletion
+      if($force) $field->flags = 0;
 
       $fg->remove($field);
       $fg->save();
