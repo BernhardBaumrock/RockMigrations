@@ -302,7 +302,7 @@ class RockMigrations extends WireData implements Module {
      * @param string $name
      * @param string $type
      * @param array $options
-     * @return void
+     * @return Field
      */
     public function createField($name, $typename, $options = null) {
       $field = $this->getField($name, false);
