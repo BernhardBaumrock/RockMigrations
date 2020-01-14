@@ -799,9 +799,10 @@ class RockMigrations extends WireData implements Module {
      * @param Template|string $template
      * @param Page|string $parent
      * @param array $status
+     * @param array $data
      * @return Page
      */
-    public function createPage($title, $name, $template, $parent, $status = []) {
+    public function createPage($title, $name = null, $template, $parent, $status = [], $data = []) {
       // create pagename from page title if it is not set
       if(!$name) $name = $this->sanitizer->pageName($title);
 
@@ -812,8 +813,13 @@ class RockMigrations extends WireData implements Module {
         'parent' => $parent,
       ]);
       if($page->id) {
+        // set status
         $page->status($status);
         $page->save();
+
+        // set page data
+        $this->setPageData($page, $data);
+
         return $page;
       }
 
@@ -826,10 +832,23 @@ class RockMigrations extends WireData implements Module {
       $p->status($status);
       $p->save();
 
+      // set page data
+      $this->setPageData($p, $data);
+
       // enable all languages for this page
       $this->enableAllLanguagesForPage($p);
 
       return $p;
+    }
+
+    /**
+     * Set page data via array
+     * @param Page $page
+     * @param array $data
+     * @return void
+     */
+    private function setPageData($page, $data) {
+      foreach($data as $k=>$v) $page->setAndSave($k, $v);
     }
 
     /**
