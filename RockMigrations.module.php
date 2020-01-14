@@ -807,11 +807,13 @@ class RockMigrations extends WireData implements Module {
       if(!$name) $name = $this->sanitizer->pageName($title);
 
       // get page if it exists
-      $page = $this->pages->get([
+      $selector = [
         'name' => $name,
         'template' => $template,
         'parent' => $parent,
-      ]);
+      ];
+      $page = $this->pages->get($selector);
+
       if($page->id) {
         // set status
         $page->status($status);
@@ -895,7 +897,7 @@ class RockMigrations extends WireData implements Module {
      */
     public function deletePages($selector) {
       $pages = $this->pages->find($selector);
-      foreach($pages as $page) $page->delete();
+      foreach($pages as $page) $this->deletePage($page);
     }
 
   /* ##### permissions ##### */
