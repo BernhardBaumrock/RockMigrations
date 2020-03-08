@@ -737,6 +737,14 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Set data for multiple templates
+     * @return void
+     */
+    public function setTemplatesData($templates, $data) {
+      foreach($templates as $t) $this->setTemplateData($t, $data);
+    }
+
+    /**
      * Set parent child family settings for two templates
      */
     public function setParentChild($parent, $child) {
