@@ -749,11 +749,12 @@ class RockMigrations extends WireData implements Module {
      */
     public function setParentChild($parent, $child) {
       $this->setTemplateData($child, [
-        'noChildren' => 1,
+        'noChildren' => 1, // may not have children
         'noParents' => '', // can be used for new pages
         'parentTemplates' => [(string)$parent],
       ]);
       $this->setTemplateData($parent, [
+        'noChildren' => 0, // may have children
         'noParents' => -1, // only one page
         'childTemplates' => [(string)$child],
         'childNameFormat' => 'title',
