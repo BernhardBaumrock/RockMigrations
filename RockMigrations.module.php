@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.1',
+      'version' => '0.0.2',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -238,7 +238,7 @@ class RockMigrations extends WireData implements Module {
    * Get all migrations of one module
    *
    * @param Module $module
-   * @return void
+   * @return array
    */
   public function getMigrations() {
     $migrations = [];
