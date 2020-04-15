@@ -27,6 +27,18 @@ $downgrade = function(RockMigrations $rm) {
 };
 ```
 
+## Migration config files
+
+To make it even simpler, you can define custom PW setups via config arrays. See `/examples/FooConfig.php` as an example. Configs can be loaded like this:
+
+```php
+$rm = $modules->get('RockMigrations');
+$rm->setConfig($config->paths($rm)."examples/FooConfig.php");
+```
+
+This makes it possible to ship custom configs with your modules. You can then easily attach the `setConfig()` call to the `$modules->refresh()` event or to your Module's `install()` method.
+
+
 ## WARNING
 
 **All api functions are destructive and can completely ruin your pw installation! This is intended behaviour and therefore you have to be careful and know what you are doing!**
