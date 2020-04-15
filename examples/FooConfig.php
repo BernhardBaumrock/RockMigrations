@@ -62,6 +62,7 @@ return [
     ],
   ],
   'pages' => [
+    // foo pages
     'foos' => [
       'title' => "foos page",
       'template' => "foos",
@@ -77,6 +78,7 @@ return [
       'parent' => "/foos",
     ],
     
+    // bar pages
     'bars' => [
       'title' => "bars page",
       'template' => "bars",
