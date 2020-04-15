@@ -1236,7 +1236,13 @@ class RockMigrations extends WireData implements Module {
     foreach($pages as $name=>$data) {
       $d = $this->wire(new WireData()); /** @var WireData $d */
       $d->setArray($data);
-      $this->createPage($d->title ?: $name, $name, $d->template, $d->parent, $d->status, $d->data);
+      $this->createPage(
+        $d->title ?: $name,
+        $name,
+        $d->template,
+        $d->parent,
+        $d->status,
+        $d->data);
     }
   }
 
