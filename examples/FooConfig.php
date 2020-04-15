@@ -1,7 +1,9 @@
 <?php namespace ProcessWire;
 return [
-  // TODO: init callback
-  // 'init' => function($rm) {},
+  'before' => function(RockMigrations $rm) {
+    $rm->deletePage("/foos");
+    $rm->removeFieldsFromTemplate(['foo', 'images'], "bar");
+  },
   'fields' => [
     'foo' => [
       'type' => 'text',
@@ -49,15 +51,9 @@ return [
       'tags' => 'RMSample',
       'parentTemplates' => ['bars'],
       'fields' => [
-        'foo' => [
-          'label' => 'foo label on bar template',
-          'columnWidth' => 50,
-        ],
         'bar' => [
           'label' => 'bar label on bar template',
-          'columnWidth' => 50,
         ],
-        'images',
       ]
     ],
   ],

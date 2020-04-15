@@ -617,6 +617,13 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * See method above
+     */
+    public function removeFieldsFromTemplate($fields, $template, $force = false) {
+      foreach($fields as $field) $this->removeFieldFromTemplate($field, $template, $force);
+    }
+
+    /**
      * Change type of field
      * @param Field|string $field
      * @param string $type
@@ -1216,24 +1223,23 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function setConfig($config) {
-    $config = $this->getConfigArray($config);
-    $data = $this->wire(new WireData()); /** @var WireData $data */
-    $config = $data->setArray($config);
+    $config = $this->getConfig($config);
 
-    $fields = $config->fields ?: [];
-    $templates = $config->templates ?: [];
-    $pages = $config->pages ?: [];
+    // trigger before callback
+    if(is_callable($config->before)) {
+      $config->before->__invoke($this);
+    }
     
     // setup fields
-    foreach($fields as $name=>$data) $this->createField($name, $data['type']);
-    foreach($fields as $name=>$data) $this->setFieldData($name, $data);
+    foreach($config->fields as $name=>$data) $this->createField($name, $data['type']);
+    foreach($config->fields as $name=>$data) $this->setFieldData($name, $data);
 
     // setup templates
-    foreach($templates as $name=>$data) $this->createTemplate($name, false);
-    foreach($templates as $name=>$data) $this->setTemplateData($name, $data);
+    foreach($config->templates as $name=>$data) $this->createTemplate($name, false);
+    foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data);
 
     // setup pages
-    foreach($pages as $name=>$data) {
+    foreach($config->pages as $name=>$data) {
       $d = $this->wire(new WireData()); /** @var WireData $d */
       $d->setArray($data);
       $this->createPage(
@@ -1244,6 +1250,27 @@ class RockMigrations extends WireData implements Module {
         $d->status,
         $d->data);
     }
+
+    // trigger after callback
+    if(is_callable($config->after)) {
+      $config->after->__invoke($this);
+    }
+  }
+
+  /**
+   * Get config data object
+   * @return WireData
+   */
+  public function getConfig($config) {
+    $config = $this->getConfigArray($config);
+    $data = $this->wire(new WireData()); /** @var WireData $data */
+    $config = $data->setArray($config);
+
+    $config->fields = $config->fields ?: [];
+    $config->templates = $config->templates ?: [];
+    $config->pages = $config->pages ?: [];
+
+    return $config;
   }
 
   /**
