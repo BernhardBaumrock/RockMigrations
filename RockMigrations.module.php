@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.2',
+      'version' => '0.0.3',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -741,12 +741,13 @@ class RockMigrations extends WireData implements Module {
      * @param array $data
      * @return void
      */
-    public function setTemplateData($template, $data) {
+    public function setTemplateData($template, $data, $removeOthers = false) {
       $template = $this->templates->get((string)$template);
       if(!$template) throw new WireException("template not found!");
       foreach($data as $k=>$v) {
         if($k === 'fields' AND is_array($v)) {
-          $this->setTemplateFields($template, $v);
+          // set fields of this template
+          $this->setTemplateFields($template, $v, $removeOthers);
           continue;
         }
         $template->{$k} = $v;
@@ -759,16 +760,29 @@ class RockMigrations extends WireData implements Module {
      * Set fields of template via array
      * @return void
      */
-    public function setTemplateFields($template, $fields) {
+    public function setTemplateFields($template, $fields, $removeOthers = false) {
+      $template = $this->templates->get((string)$template);
       $last = null;
+      $names = [];
       foreach($fields as $name=>$data) {
         if(is_int($name)) {
           $name = $data;
           $data = [];
         }
+        $names[] = $name;
         $this->addFieldToTemplate($name, $template, $last);
         $this->setFieldData($name, $data, $template);
         $last = $name;
+      }
+
+      if(!$removeOthers) return;
+      foreach($template->fields as $field) {
+        $name = (string)$field;
+        if(!in_array($name, $names)) {
+          // remove this field from the template
+          // global fields like the title field are also removed
+          $this->removeFieldFromTemplate($name, $template, true);
+        }
       }
     }
 
@@ -1225,10 +1239,14 @@ class RockMigrations extends WireData implements Module {
   /* ##### config file support ##### */
 
   /**
-   * Set PW setup based on config array
-   * @return void
+   * Migrate PW setup based on config array
+   * 
+   * The method returns the used config so that you can do actions after migration
+   * eg adding custom tags to all fields or templates that where migrated
+   * 
+   * @return WireData
    */
-  public function setConfig($config, $vars = []) {
+  public function migrate($config, $vars = []) {
     $config = $this->getConfig($config, $vars);
 
     // trigger before callback
@@ -1242,10 +1260,15 @@ class RockMigrations extends WireData implements Module {
 
     // setup templates
     foreach($config->templates as $name=>$data) $this->createTemplate($name, false);
-    foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data);
+    foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data, true);
 
     // setup pages
     foreach($config->pages as $name=>$data) {
+      if(is_int($name)) {
+        // no name provided
+        $name = uniqid();
+      }
+
       $d = $this->wire(new WireData()); /** @var WireData $d */
       $d->setArray($data);
       $this->createPage(
@@ -1261,6 +1284,8 @@ class RockMigrations extends WireData implements Module {
     if(is_callable($config->after)) {
       $config->after->__invoke($this);
     }
+
+    return $config;
   }
 
   /**
@@ -1278,10 +1303,10 @@ class RockMigrations extends WireData implements Module {
    * Get config array
    * @return array
    */
-  public function getConfigArray($data, $vars = []) {
-    if(is_string($data)) {
-      if(is_file($data)) {
-        $config = $this->files->render($data, $vars);
+  public function getConfigArray($config, $vars = []) {
+    if(is_string($config)) {
+      if(is_file($config)) {
+        $config = $this->files->render($config, $vars);
       }
     }
     if(!is_array($config)) throw new WireException("Invalid config data");

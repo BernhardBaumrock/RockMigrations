@@ -33,10 +33,33 @@ To make it even simpler, you can define custom PW setups via config arrays. See 
 
 ```php
 $rm = $modules->get('RockMigrations');
-$rm->setConfig($config->paths($rm)."examples/FooConfig.php");
+$rm->migrate($config->paths($rm)."examples/FooConfig.php");
 ```
 
-This makes it possible to ship custom configs with your modules. You can then easily attach the `setConfig()` call to the `$modules->refresh()` event or to your Module's `install()` method.
+This makes it possible to ship custom configs with your modules. You can then easily attach the `migrate()` call to the `$modules->refresh()` event or to your Module's `install()` method.
+
+Here's an example of a simple Migration using array syntax:
+
+```php
+$modules->get('RockMigrations')->migrate([
+  'fields' => [
+    'cke' => [
+      'type' => 'textarea',
+      'inputfieldClass' => 'InputfieldCKEditor',
+      'textformatters' => ['TextformatterEntities'],
+      'contentType' => 1, // html
+    ],
+  ],
+  'templates' => [
+    'ckeditor-example-template' => [
+      'icon' => 'align-left',
+      'noChildren' => 1, // no children allowed
+      'parentTemplates' => ['home'],
+      'fields' => ['cke'],
+    ],
+  ],
+]);
+```
 
 
 ## WARNING
