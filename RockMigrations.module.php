@@ -478,6 +478,12 @@ class RockMigrations extends WireData implements Module {
       $template = $this->templates->get((string)$name);
       if(!$template) throw new WireException("Template $name not found");
 
+      // make sure that all fields exist
+      foreach($fields as $i=>$field) {
+        if(!$this->fields->get($field)) unset($fields[$i]);
+      }
+      $fields = array_values($fields); // reset indices
+
       foreach($fields as $i => $field) {
         if(!$i) continue;
         $this->addFieldToTemplate($field, $template, $fields[$i-1]);
