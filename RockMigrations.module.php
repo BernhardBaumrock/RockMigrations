@@ -731,9 +731,32 @@ class RockMigrations extends WireData implements Module {
     public function setTemplateData($template, $data) {
       $template = $this->templates->get((string)$template);
       if(!$template) throw new WireException("template not found!");
-      foreach($data as $k=>$v) $template->{$k} = $v;
+      foreach($data as $k=>$v) {
+        if($k === 'fields' AND is_array($v)) {
+          $this->setTemplateFields($template, $v);
+          continue;
+        }
+        $template->{$k} = $v;
+      }
       $template->save();
       return $template;
+    }
+
+    /**
+     * Set fields of template via array
+     * @return void
+     */
+    public function setTemplateFields($template, $fields) {
+      $last = null;
+      foreach($fields as $name=>$data) {
+        if(is_int($name)) {
+          $name = $data;
+          $data = [];
+        }
+        $this->addFieldToTemplate($name, $template, $last);
+        $this->setFieldData($name, $data, $template);
+        $last = $name;
+      }
     }
 
     /**
@@ -1185,6 +1208,52 @@ class RockMigrations extends WireData implements Module {
       $this->uninstallModule($name);
       $this->files->rmdir($this->config->paths($module), true);
     }
+
+  /* ##### config file support ##### */
+
+  /**
+   * Set PW setup based on config array
+   * @return void
+   */
+  public function setConfig($config) {
+    $config = $this->getConfigArray($config);
+    $data = $this->wire(new WireData()); /** @var WireData $data */
+    $config = $data->setArray($config);
+
+    $fields = $config->fields ?: [];
+    $templates = $config->templates ?: [];
+    $pages = $config->pages ?: [];
+    
+    // create all necessary fields etc
+    foreach($fields as $name=>$data) $this->createField($name, $data['type']);
+    foreach($templates as $name=>$data) $this->createTemplate($name, false);
+
+    // set data
+    foreach($fields as $name=>$data) $this->setFieldData($name, $data);
+    foreach($templates as $name=>$data) $this->setTemplateData($name, $data);
+
+    // create pages
+    foreach($pages as $name=>$data) {
+      $d = $this->wire(new WireData()); /** @var WireData $d */
+      $d->setArray($data);
+      $this->createPage($d->title ?: $name, $name, $d->template, $d->parent, $d->status, $d->data);
+    }
+  }
+
+  /**
+   * Get config array
+   * @return array
+   */
+  public function getConfigArray($data) {
+    if(is_string($data)) {
+      if(is_file($data)) {
+        $config = $this->files->render($data);
+      }
+    }
+
+    if(!is_array($config)) throw new WireException("Invalid config data");
+    return $config;
+  }
 
   /* ##### languages ##### */
 
