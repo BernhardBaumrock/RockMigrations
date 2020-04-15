@@ -1222,8 +1222,8 @@ class RockMigrations extends WireData implements Module {
    * Set PW setup based on config array
    * @return void
    */
-  public function setConfig($config) {
-    $config = $this->getConfig($config);
+  public function setConfig($config, $vars = []) {
+    $config = $this->getConfig($config, $vars);
 
     // trigger before callback
     if(is_callable($config->before)) {
@@ -1261,15 +1261,10 @@ class RockMigrations extends WireData implements Module {
    * Get config data object
    * @return WireData
    */
-  public function getConfig($config) {
-    $config = $this->getConfigArray($config);
+  public function getConfig($config, $vars = []) {
+    $config = $this->getConfigArray($config, $vars);
     $data = $this->wire(new WireData()); /** @var WireData $data */
     $config = $data->setArray($config);
-
-    $config->fields = $config->fields ?: [];
-    $config->templates = $config->templates ?: [];
-    $config->pages = $config->pages ?: [];
-
     return $config;
   }
 
@@ -1277,14 +1272,20 @@ class RockMigrations extends WireData implements Module {
    * Get config array
    * @return array
    */
-  public function getConfigArray($data) {
+  public function getConfigArray($data, $vars = []) {
     if(is_string($data)) {
       if(is_file($data)) {
-        $config = $this->files->render($data);
+        $config = $this->files->render($data, $vars);
       }
     }
-
     if(!is_array($config)) throw new WireException("Invalid config data");
+
+    // this ensures that $config->fields is an empty array rather than
+    // a processwire fields object (proxied from the wire object)
+    if(!array_key_exists("fields", $config)) $config['fields'] = [];
+    if(!array_key_exists("templates", $config)) $config['templates'] = [];
+    if(!array_key_exists("pages", $config)) $config['pages'] = [];
+
     return $config;
   }
 
