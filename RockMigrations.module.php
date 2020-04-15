@@ -1224,15 +1224,15 @@ class RockMigrations extends WireData implements Module {
     $templates = $config->templates ?: [];
     $pages = $config->pages ?: [];
     
-    // create all necessary fields etc
+    // setup fields
     foreach($fields as $name=>$data) $this->createField($name, $data['type']);
-    foreach($templates as $name=>$data) $this->createTemplate($name, false);
-
-    // set data
     foreach($fields as $name=>$data) $this->setFieldData($name, $data);
+
+    // setup templates
+    foreach($templates as $name=>$data) $this->createTemplate($name, false);
     foreach($templates as $name=>$data) $this->setTemplateData($name, $data);
 
-    // create pages
+    // setup pages
     foreach($pages as $name=>$data) {
       $d = $this->wire(new WireData()); /** @var WireData $d */
       $d->setArray($data);

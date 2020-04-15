@@ -2,6 +2,17 @@
 return [
   // TODO: init callback
   // 'init' => function($rm) {},
+  'fields' => [
+    'foo' => [
+      'type' => 'text',
+      'label' => 'foo field label',
+      'tags' => 'RMSample',
+    ],
+    'bar' => [
+      'type' => 'textarea',
+      'tags' => 'RMSample',
+    ],
+  ],
   'templates' => [
     'foos' => [
       'childTemplates' => ['foo'],
@@ -48,17 +59,6 @@ return [
         ],
         'images',
       ]
-    ],
-  ],
-  'fields' => [
-    'foo' => [
-      'type' => 'text',
-      'label' => 'foo field label',
-      'tags' => 'RMSample',
-    ],
-    'bar' => [
-      'type' => 'textarea',
-      'tags' => 'RMSample',
     ],
   ],
   'pages' => [
