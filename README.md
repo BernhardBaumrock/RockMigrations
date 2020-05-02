@@ -61,6 +61,22 @@ $modules->get('RockMigrations')->migrate([
 ]);
 ```
 
+### Template migrations
+
+A simple template migration can look like this:
+
+```php
+$rm->migrate([
+  'templates' => [
+    'my-template' => [
+      'icon' => 'check',
+      'fields' => ['foo', 'bar'],
+    ],
+  ],
+]);
+```
+
+This will remove all other fields than `foo` and `bar` from this template. If you want to keep all other fields use `fields+` as key.
 
 ## WARNING
 

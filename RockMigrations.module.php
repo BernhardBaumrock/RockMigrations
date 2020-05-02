@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.3',
+      'version' => '0.0.4',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -745,6 +745,11 @@ class RockMigrations extends WireData implements Module {
       $template = $this->templates->get((string)$template);
       if(!$template) throw new WireException("template not found!");
       foreach($data as $k=>$v) {
+        if($k === 'fields+' AND is_array($v)) {
+          // set fields of template but dont remove non-mentioned fields
+          $this->setTemplateFields($template, $v, false);
+          continue;
+        }
         if($k === 'fields' AND is_array($v)) {
           // set fields of this template
           $this->setTemplateFields($template, $v, $removeOthers);
