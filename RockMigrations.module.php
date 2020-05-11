@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.4',
+      'version' => '0.0.5',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -869,6 +869,9 @@ class RockMigrations extends WireData implements Module {
     public function createPage($title, $name = null, $template, $parent, $status = [], $data = []) {
       // create pagename from page title if it is not set
       if(!$name) $name = $this->sanitizer->pageName($title);
+
+      // make sure parent is a page and not a selector
+      $parent = $this->pages->get((string)$parent);
 
       // get page if it exists
       $selector = [
