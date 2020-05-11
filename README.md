@@ -76,8 +76,6 @@ $rm->migrate([
 ]);
 ```
 
-This will remove all other fields than `foo` and `bar` from this template. If you want to keep all other fields use `fields+` as key.
-
 ## WARNING
 
 **All api functions are destructive and can completely ruin your pw installation! This is intended behaviour and therefore you have to be careful and know what you are doing!**
