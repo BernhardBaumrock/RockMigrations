@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.5',
+      'version' => '0.0.6',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -858,7 +858,7 @@ class RockMigrations extends WireData implements Module {
      * If the page exists it will return the existing page.
      * All available languages will be set active by default for this page.
      *
-     * @param string $title
+     * @param array|string $title
      * @param string $name
      * @param Template|string $template
      * @param Page|string $parent
@@ -866,7 +866,9 @@ class RockMigrations extends WireData implements Module {
      * @param array $data
      * @return Page
      */
-    public function createPage($title, $name = null, $template, $parent, $status = [], $data = []) {
+    public function createPage($title, $name = null, $template = '', $parent = '', $status = [], $data = []) {
+      if(is_array($title)) return $this->createPageByArray($title);
+
       // create pagename from page title if it is not set
       if(!$name) $name = $this->sanitizer->pageName($title);
 
@@ -911,12 +913,61 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Create page by array
+     * 
+     * This is more future proof and has more options than the old version,
+     * eg you can provide a callback:
+     * $rm->createPage([
+     *   'title' => 'foo',
+     *   'onCreate' => function($page) { ... },
+     * ]);
+     * 
+     * @return Page
+     */
+    public function createPageByArray($array) {
+      $data = $this->wire(new WireData()); /** @var WireData $data */
+      $data->setArray($array);
+
+      // check for necessary properties
+      $parent = $this->pages->get((string)$data->parent);
+      if(!$parent->id) throw new WireException("Invalid parent");
+      $template = $this->templates->get((string)$data->template);
+      if(!$template instanceof Template OR !$template->id) throw new WireException("Invalid template");
+      
+      // check name
+      $name = $data->name;
+      if(!$name) {
+        if(!$data->title) throw new WireException("If no name is set you need to set a title!");
+        $name = $this->sanitizer->pageName($data->title);
+      }
+
+      // set flag if page was created or not
+      $created = !$this->pages->get("parent=$parent,name=$name")->id;
+
+      // create page
+      $page = $this->createPage(
+        $data->title,
+        $name,
+        $template,
+        $parent,
+        $data->status,
+        $data->pageData
+      );
+      
+      // if page was created we fire the onCreate callback
+      if($created AND is_callable($data->onCreate)) $data->onCreate->__invoke($page);
+
+      return $page;
+    }
+
+    /**
      * Set page data via array
      * @param Page $page
      * @param array $data
      * @return void
      */
     private function setPageData($page, $data) {
+      if(!$data) return;
       foreach($data as $k=>$v) $page->setAndSave($k, $v);
     }
 
