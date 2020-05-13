@@ -194,8 +194,12 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function executeInstall() {
-    $version = self::getModuleInfo()['version'];
-    return $this->executeUpgrade(null, $version);
+  	// check if module is set
+    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
+
+    $version = $this->modules->getModuleInfo($this->module)['version'];
+    $versionStr = $this->modules->formatVersion($version);
+    return $this->executeUpgrade(null, $versionStr);
   }
   
   /**
@@ -204,8 +208,12 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function executeUninstall() {
-    $version = self::getModuleInfo()['version'];
-    return $this->executeUpgrade($version, null);
+  	// check if module is set
+    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
+
+    $version = $this->modules->getModuleInfo($this->module)['version'];
+    $versionStr = $this->modules->formatVersion($version);
+    return $this->executeUpgrade($versionStr, null);
   }
 
   /**
