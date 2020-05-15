@@ -1437,4 +1437,8 @@ class RockMigrations extends WireData implements Module {
     //   $this->modules->uninstall('ProcessLanguage');
     //   @$this->modules->uninstall('LanguageSupport');
     // }
+
+  public function __debugInfo() {
+    return [];
+  }
 }
