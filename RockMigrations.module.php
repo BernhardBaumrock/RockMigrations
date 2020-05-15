@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.6',
+      'version' => '0.0.7',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -848,6 +848,17 @@ class RockMigrations extends WireData implements Module {
       $fg->save();
 
       return $t;
+    }
+
+    /**
+     * Allow given child for given parent
+     */
+    public function addAllowedChild($child, $parent) {
+      $child = $this->getTemplate($child);
+      $parent = $this->getTemplate($parent);
+      $childs = $parent->childTemplates;
+      $childs[] = $child;
+      $this->setTemplateData($parent, ['childTemplates' => $childs]);
     }
   
   /* ##### pages ##### */
