@@ -1,5 +1,7 @@
 # RockMigrations Module
 
+Support Board Link: https://processwire.com/talk/topic/21212-rockmigrations-easy-migrations-from-devstaging-to-live-server/
+
 ## Why Migrations?
 
 Benjamin Milde wrote a great blog post about that: https://processwire.com/blog/posts/introduction-migrations-module/
@@ -163,3 +165,5 @@ $downgrade = function(RockMigrations $rm) {
   $rm->removeTemplate($rm->data->tpl);
 };
 ```
+
+If you are using RockMigrations I'm happy to hear about that: https://processwire.com/talk/topic/21212-rockmigrations-easy-migrations-from-devstaging-to-live-server/
