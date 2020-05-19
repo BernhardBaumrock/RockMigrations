@@ -194,7 +194,7 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function executeInstall() {
-  	// check if module is set
+    // check if module is set
     if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
 
     $version = $this->modules->getModuleInfo($this->module)['version'];
@@ -208,7 +208,7 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function executeUninstall() {
-  	// check if module is set
+    // check if module is set
     if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
 
     $version = $this->modules->getModuleInfo($this->module)['version'];
