@@ -6,18 +6,14 @@ Benjamin Milde wrote a great blog post about that: https://processwire.com/blog/
 
 ## Why another migrations module?
 
-Benjamin's Migrations Module is great (https://modules.processwire.com/modules/migrations/), but there were two things that I didn't like:
-
-* For me, it didn't feel easy to use
-* You have to define Migrations in a central place and I wanted to be able to use Migrations in my Modules
-
-The second point does bring downsides with it, so this might have been intended by him. Anyhow - I like when things work "my way" :)
+I just didn't like the way the other module works. You need to create a file for every migration that you want to apply (like creating a new field, template, etc). With RockMigrations the goal is to make most of the necessary changes a 1-liner that you can add to any file you want (meaning that you can use RockMigrations in any of your modules).
 
 ## Example
 
 See this example of how it works and how easy it is to use. Let's start with a very simple Migration that only creates (on upgrade) or deletes (on downgrade) one field:
 
 ```php
+// See section DETAILS below
 $upgrade = function(RockMigrations $rm) {
   $rm->createField('yournewfield', 'text');
 };
@@ -28,15 +24,6 @@ $downgrade = function(RockMigrations $rm) {
 ```
 
 ## Migration config files
-
-To make it even simpler, you can define custom PW setups via config arrays. See `/examples/FooConfig.php` as an example. Configs can be loaded like this:
-
-```php
-$rm = $modules->get('RockMigrations');
-$rm->migrate($config->paths($rm)."examples/FooConfig.php");
-```
-
-This makes it possible to ship custom configs with your modules. You can then easily attach the `migrate()` call to the `$modules->refresh()` event or to your Module's `install()` method.
 
 Here's an example of a simple Migration using array syntax:
 
@@ -61,20 +48,15 @@ $modules->get('RockMigrations')->migrate([
 ]);
 ```
 
-### Template migrations
-
-A simple template migration can look like this:
+You can also define a php file that returns an array:
 
 ```php
-$rm->migrate([
-  'templates' => [
-    'my-template' => [
-      'icon' => 'check',
-      'fields' => ['foo', 'bar'],
-    ],
-  ],
-]);
+$rm = $modules->get('RockMigrations');
+$rm->migrate($config->paths($rm)."examples/FooConfig.php");
 ```
+
+See the shipped FooConfig.php file for what is possible.
+
 
 ## WARNING
 
@@ -82,13 +64,7 @@ $rm->migrate([
 
 For example deleting a template will also delete all pages having this template. Usually, when using the regular PW API, you'd need to firt check if there are any pages using this template, then delete those pages and finally also delete the corresponding fieldgroup. If the template has the system flag set, you'd also need to remove that flag before deleting the template. That's a lot of things to think of, if all you want to do is to delete a template (and of course all pages having this template). Using RockMigrations it's only one line of code: `$rm->deleteTemplate('yourtemplatename');`
 
-The goal was: What is easy to do via the GUI should also be easy to do via the API.
-
-## Usage
-
-Create a new module. You can use [RockModuleCreator](https://github.com/BernhardBaumrock/RockModuleCreator) to make your life easier.
-
-![RockModuleCreator](https://i.imgur.com/5k4NbDh.png)
+## Details
 
 You can use the Migrations Demo Module from this source as Module Skeleton URL: https://github.com/BernhardBaumrock/RockMigrationsDemo/archive/master.zip
 
@@ -104,7 +80,7 @@ This makes creating migrations really easy.
 
 ## Examples
 
-Please see the readme of the RockMigrationsDemo Repo for detailed examples of what you can do and how: https://github.com/BernhardBaumrock/RockMigrationsDemo
+Please see the readme of the RockMigrationsDemo Repo for some examples of what you can do and how: https://github.com/BernhardBaumrock/RockMigrationsDemo
 
 ## Run Migrations
 
@@ -187,11 +163,3 @@ $downgrade = function(RockMigrations $rm) {
   $rm->removeTemplate($rm->data->tpl);
 };
 ```
-
-## Roadmap/Notes/Limitations
-
-* Error handling if upgrades fail?
-* Handle order of Migrations from different Modules
-* GUI for executing Migrations
-* Implement a "dry run/test run" feature (eg to check for field name collisions)
-* http://worldtimeapi.org/api/timezone/Etc/UTC/
