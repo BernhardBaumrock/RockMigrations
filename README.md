@@ -59,6 +59,29 @@ $rm->migrate($config->paths($rm)."examples/FooConfig.php");
 
 See the shipped FooConfig.php file for what is possible.
 
+Using the latter option (`migrate()`) instead of a single file migration that defines an `upgrade` and `downgrade` function is easier as long as you do not need to **remove** data from your system. Take this example:
+
+```php
+$rm->migrate([
+  'fields' => [
+    'foo' => ['type'=>'text'],
+    'bar' => ['type'=>'text'],
+  ],
+]);
+```
+
+What if you wanted to remove the `foo` field and rename your `bar` field to `foobar` instead and convert it to a textarea? You'd do this:
+
+```php
+/** @var RockMigrations $rm */
+$rm->deleteField('foo');
+$rm->renameField('bar', 'foobar');
+$rm->migrate([
+  'fields' => [
+    'foobar' => ['type'=>'textarea'],
+  ],
+]);
+```
 
 ## WARNING
 

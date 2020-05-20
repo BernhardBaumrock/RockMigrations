@@ -657,6 +657,23 @@ class RockMigrations extends WireData implements Module {
       return $field;
     }
 
+    /**
+     * Rename this field
+     * @return Field|false
+     */
+    public function renameField($oldname, $newname) {
+      $field = $this->getField($oldname, false);
+      if(!$field) return false;
+      
+      // the new field must not exist
+      $newfield = $this->getField($newname, false);
+      if($newfield) throw new WireException("Field $newname already exists");
+      
+      // change the old field
+      $field->name = $newname;
+      $field->save();
+    }
+
   /* ##### templates ##### */
 
     /**
