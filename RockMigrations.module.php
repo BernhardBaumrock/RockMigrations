@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.8',
+      'version' => '0.0.9',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -758,6 +758,16 @@ class RockMigrations extends WireData implements Module {
       // template was not found, throw exception
       if(!$exception) $exception = "Template not found";
       throw new WireException($exception);
+    }
+
+    /**
+     * Get template of given repeater field
+     * @param Field|string $field
+     * @return Template
+     */
+    public function getRepeaterTemplate($field) {
+      $field = $this->getField($field);
+      return $this->templates->get($field->template_id);
     }
 
     /**
