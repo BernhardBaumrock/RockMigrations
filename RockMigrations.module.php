@@ -46,14 +46,14 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Execute the upgrade from one version to another
-   * 
+   *
    * Does also execute on downgrades.
    * If a module is set, we execute this upgrade on that module and not on the current.
    *
    * @param string $from
    * @param string $to
    * @param Module|string $module
-   * 
+   *
    * @return int number of migrations that where executed
    */
   public function execute($from, $to, $module = null) {
@@ -66,14 +66,14 @@ class RockMigrations extends WireData implements Module {
 
     // check if module is set
     if(!$this->module) throw new WireException("Module invalid or not set!");
-    
+
     // get migrations
     $migrations = $this->getMigrations();
 
     // check mode and log request
     $mode = version_compare($from, $to) > 0 ? 'downgrade' : 'upgrade';
     $this->log("Executing $mode $from   -->   $to for module " . $this->module);
-    
+
     // early exit if no migrations
     $count = 0;
     if(!count($migrations)) return $count;
@@ -91,7 +91,7 @@ class RockMigrations extends WireData implements Module {
     // eg. when creating a new page and setting the title of a multi-lang page.
     $lang = $this->user->language;
     if($this->languages) $this->user->language = $this->languages->getDefault();
-    
+
     // now execute all available upgrades step by step
     foreach($migrations as $version) {
       // check if migration is part of the upgrade
@@ -131,7 +131,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Test upgrade for given version
-   * 
+   *
    * This will execute the downgrade and then the upgrade of only this version.
    *
    * @param string $version
@@ -163,12 +163,12 @@ class RockMigrations extends WireData implements Module {
     // get migration
     $migration = $this->getMigration($version);
     if(!$migration) throw new WireException("Migration $version not found");
-    
+
     // now we execute the upgrade
     $prev = @$migration->getPrev()->version;
     $this->executeUpgrade($prev, $version);
   }
-  
+
   /**
    * Execute downgrade of given version
    *
@@ -182,7 +182,7 @@ class RockMigrations extends WireData implements Module {
     // get migration
     $migration = $this->getMigration($version);
     if(!$migration) throw new WireException("Migration $version not found");
-    
+
     // now we execute the upgrade
     $prev = @$migration->getPrev()->version;
     $this->executeUpgrade($version, $prev);
@@ -201,7 +201,7 @@ class RockMigrations extends WireData implements Module {
     $versionStr = $this->modules->formatVersion($version);
     return $this->executeUpgrade(null, $versionStr);
   }
-  
+
   /**
    * Execute all Downgrade Scripts on Uninstallation
    *
@@ -226,7 +226,7 @@ class RockMigrations extends WireData implements Module {
     $migration = new RockMigration();
     $migration->version = $version;
     $migration->object = $this;
-    
+
     // find according php file
     $file = $this->getMigrationsPath().$version.".php";
     $upgrade = function(){};
@@ -298,7 +298,7 @@ class RockMigrations extends WireData implements Module {
       // return field when found or no exception
       if($field) return $field;
       if($exception === false) return;
-      
+
       // field was not found, throw exception
       if(!$exception) $exception = "Field $name not found";
       throw new WireException($exception);
@@ -323,7 +323,7 @@ class RockMigrations extends WireData implements Module {
           $type = $this->modules->get($type);
           if(!$type) throw new WireException("Invalid Fieldtype");
         }
-        
+
         // create the new field
         if(strtolower($name) !== $name) throw new WireException("Fieldname must be lowercase!");
         $name = strtolower($name);
@@ -353,7 +353,7 @@ class RockMigrations extends WireData implements Module {
      */
     public function setFieldOptionsString($name, $options) {
       $field = $this->getField($name);
-      
+
       $manager = $this->wire(new SelectableOptionManager());
       $manager->setOptionsString($field, $options, false);
       $field->save();
@@ -403,7 +403,7 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Set the language value of the given field
-     * 
+     *
      * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
      *   'default' => 'Therapie',
      *   'english' => 'Therapy',
@@ -418,7 +418,7 @@ class RockMigrations extends WireData implements Module {
       $page = $this->pages->get((string)$page);
       if(!$page->id) throw new WireException("Page not found!");
       $field = $this->getField($field);
-      
+
       // set field value for all provided languages
       foreach($data as $lang=>$val) {
         $lang = $this->languages->get($lang);
@@ -430,10 +430,10 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Set data of a field
-     * 
+     *
      * If a template is provided the data is set in template context only.
      * You can also provide an array of templates.
-     * 
+     *
      * Multilang is also possible:
      * $rm->setFieldData('yourfield', [
      *   'label' => 'foo', // default language
@@ -475,7 +475,7 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Set field order at given template
-     * 
+     *
      * The first field is always the reference for all other fields.
      *
      * @param array $fields
@@ -509,7 +509,7 @@ class RockMigrations extends WireData implements Module {
     public function moveFieldAfter($field, $after, $template) {
       $this->addFieldToTemplate($field, $template, $after);
     }
-    
+
     /**
      * Move one field before another
      *
@@ -524,7 +524,7 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Delete template overrides for the given field
-     * 
+     *
      * Example usage:
      * Delete custom field width for 'myfield' and 'mytemplate':
      * $rm->deleteFieldTemplateOverrides('myfield', [
@@ -543,7 +543,7 @@ class RockMigrations extends WireData implements Module {
         // get template
         $template = $this->templates->get((string)$tpl);
         if(!$template) throw new WireException("Template $tpl not found");
-        
+
         // set field data in template context
         $fg = $template->fieldgroup;
         $data = $fg->getFieldContextArray($field->id);
@@ -551,7 +551,7 @@ class RockMigrations extends WireData implements Module {
         $fg->setFieldContextArray($field->id, $data);
         $fg->saveContext();
       }
-      
+
     }
 
     /**
@@ -564,7 +564,7 @@ class RockMigrations extends WireData implements Module {
     public function addFieldToTemplate($field, $template, $afterfield = null, $beforefield = null) {
       $field = $this->getField($field);
       $template = $this->getTemplate($template);
-      
+
       $afterfield = $this->getField($afterfield, false);
       $beforefield = $this->getField($beforefield, false);
       $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
@@ -585,10 +585,10 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Add fields to template.
-     * 
+     *
      * Simple:
      * $rm->addFieldsToTemplate(['field1', 'field2'], 'yourtemplate');
-     * 
+     *
      * Add fields at special positions:
      * $rm->addFieldsToTemplate([
      *   'field1',
@@ -618,7 +618,7 @@ class RockMigrations extends WireData implements Module {
     public function removeFieldFromTemplate($field, $template, $force = false) {
       $field = $this->getField($field, false);
       if(!$field) return;
-      
+
       $template = $this->templates->get((string)$template);
       if(!$template) return;
       $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
@@ -664,11 +664,11 @@ class RockMigrations extends WireData implements Module {
     public function renameField($oldname, $newname) {
       $field = $this->getField($oldname, false);
       if(!$field) return false;
-      
+
       // the new field must not exist
       $newfield = $this->getField($newname, false);
       if($newfield) throw new WireException("Field $newname already exists");
-      
+
       // change the old field
       $field->name = $newname;
       $field->save();
@@ -677,21 +677,14 @@ class RockMigrations extends WireData implements Module {
   /* ##### templates ##### */
 
     /**
-     * Get template by name
-     *
-     * @param Template|string $name
-     * @return mixed
+     * Allow given child for given parent
      */
-    public function getTemplate($name, $exception = null) {
-      $template = $this->templates->get((string)$name);
-
-      // return template when found or no exception
-      if($template) return $template;
-      if($exception === false) return;
-      
-      // template was not found, throw exception
-      if(!$exception) $exception = "Template not found";
-      throw new WireException($exception);
+    public function addAllowedChild($child, $parent) {
+      $child = $this->getTemplate($child);
+      $parent = $this->getTemplate($parent);
+      $childs = $parent->childTemplates;
+      $childs[] = $child;
+      $this->setTemplateData($parent, ['childTemplates' => $childs]);
     }
 
     /**
@@ -748,14 +741,83 @@ class RockMigrations extends WireData implements Module {
       $fg = $this->fieldgroups->get($name);
       $this->fieldgroups->delete($fg);
     }
-    
+
+    /**
+     * Get template by name
+     *
+     * @param Template|string $name
+     * @return mixed
+     */
+    public function getTemplate($name, $exception = null) {
+      $template = $this->templates->get((string)$name);
+
+      // return template when found or no exception
+      if($template) return $template;
+      if($exception === false) return;
+
+      // template was not found, throw exception
+      if(!$exception) $exception = "Template not found";
+      throw new WireException($exception);
+    }
+
+    /**
+     * This renames a template and corresponding fieldgroup
+     * @return Template
+     */
+    public function renameTemplate($oldname, $newname) {
+      $t = $this->templates->get((string)$oldname);
+
+      // if the new template already exists we return it
+      // this is important if you run one migration multiple times
+      // $bar = $rm->renameTemplate('foo', 'bar');
+      // $rm->setTemplateData($bar, [...]);
+      $newTemplate = $this->templates->get((string)$newname);
+      if($newTemplate) return $newTemplate;
+
+      $t->name = $newname;
+      $t->save();
+
+      $fg = $t->fieldgroup;
+      $fg->name = $newname;
+      $fg->save();
+
+      return $t;
+    }
+
+    /**
+     * Set template icon
+     */
+    public function setIcon($template, $icon) {
+      $template = $this->templates->get((string)$template);
+      $template->setIcon($icon);
+      $template->save();
+      return $template;
+    }
+
+    /**
+     * Set parent child family settings for two templates
+     */
+    public function setParentChild($parent, $child) {
+      $this->setTemplateData($child, [
+        'noChildren' => 1, // may not have children
+        'noParents' => '', // can be used for new pages
+        'parentTemplates' => [(string)$parent],
+      ]);
+      $this->setTemplateData($parent, [
+        'noChildren' => 0, // may have children
+        'noParents' => -1, // only one page
+        'childTemplates' => [(string)$child],
+        'childNameFormat' => 'title',
+      ]);
+    }
+
     /**
      * Set data of a template
-     * 
+     *
      * TODO: Set data in template context.
      * TODO: Wording is inconsistant! Set = Update, because it only sets
      * provided key value pairs and not the whole array
-     * 
+     *
      * Multilang is also possible:
      * $rm->setTemplateData('yourtemplate', [
      *   'label' => 'foo', // default language
@@ -824,73 +886,11 @@ class RockMigrations extends WireData implements Module {
       foreach($templates as $t) $this->setTemplateData($t, $data);
     }
 
-    /**
-     * Set parent child family settings for two templates
-     */
-    public function setParentChild($parent, $child) {
-      $this->setTemplateData($child, [
-        'noChildren' => 1, // may not have children
-        'noParents' => '', // can be used for new pages
-        'parentTemplates' => [(string)$parent],
-      ]);
-      $this->setTemplateData($parent, [
-        'noChildren' => 0, // may have children
-        'noParents' => -1, // only one page
-        'childTemplates' => [(string)$child],
-        'childNameFormat' => 'title',
-      ]);
-    }
-
-    /**
-     * Set template icon
-     */
-    public function setIcon($template, $icon) {
-      $template = $this->templates->get((string)$template);
-      $template->setIcon($icon);
-      $template->save();
-      return $template;
-    }
-
-    /**
-     * This renames a template and corresponding fieldgroup
-     * @return Template
-     */
-    public function renameTemplate($oldname, $newname) {
-      $t = $this->templates->get((string)$oldname);
-
-      // if the new template already exists we return it
-      // this is important if you run one migration multiple times
-      // $bar = $rm->renameTemplate('foo', 'bar');
-      // $rm->setTemplateData($bar, [...]);
-      $newTemplate = $this->templates->get((string)$newname);
-      if($newTemplate) return $newTemplate;
-
-      $t->name = $newname;
-      $t->save();
-      
-      $fg = $t->fieldgroup;
-      $fg->name = $newname;
-      $fg->save();
-
-      return $t;
-    }
-
-    /**
-     * Allow given child for given parent
-     */
-    public function addAllowedChild($child, $parent) {
-      $child = $this->getTemplate($child);
-      $parent = $this->getTemplate($parent);
-      $childs = $parent->childTemplates;
-      $childs[] = $child;
-      $this->setTemplateData($parent, ['childTemplates' => $childs]);
-    }
-  
   /* ##### pages ##### */
 
     /**
      * Create a new Page
-     * 
+     *
      * If the page exists it will return the existing page.
      * All available languages will be set active by default for this page.
      *
@@ -950,14 +950,14 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Create page by array
-     * 
+     *
      * This is more future proof and has more options than the old version,
      * eg you can provide a callback:
      * $rm->createPage([
      *   'title' => 'foo',
      *   'onCreate' => function($page) { ... },
      * ]);
-     * 
+     *
      * @return Page
      */
     public function createPageByArray($array) {
@@ -969,7 +969,7 @@ class RockMigrations extends WireData implements Module {
       if(!$parent->id) throw new WireException("Invalid parent");
       $template = $this->templates->get((string)$data->template);
       if(!$template instanceof Template OR !$template->id) throw new WireException("Invalid template");
-      
+
       // check name
       $name = $data->name;
       if(!$name) {
@@ -989,7 +989,7 @@ class RockMigrations extends WireData implements Module {
         $data->status,
         $data->pageData
       );
-      
+
       // if page was created we fire the onCreate callback
       if($created AND is_callable($data->onCreate)) $data->onCreate->__invoke($page);
 
@@ -1029,7 +1029,7 @@ class RockMigrations extends WireData implements Module {
       // make sure we got a page
       $page = $this->pages->get((string)$page);
       if(!$page->id) return;
-      
+
       // make sure we can delete the page and delete it
       // we also need to make sure that all descendants of this page are deletable
       // todo: make this recursive?
@@ -1179,7 +1179,7 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Create a PW user with given password
-     * 
+     *
      * If the user already exists it will return this user.
      *
      * @param string $username
@@ -1195,7 +1195,7 @@ class RockMigrations extends WireData implements Module {
       $user->save();
       return $user;
     }
-    
+
     /**
      * Delete a PW user
      *
@@ -1248,7 +1248,7 @@ class RockMigrations extends WireData implements Module {
       if(!$module) throw new WireException("Module not found!");
       $this->modules->saveConfig($module, $data);
     }
-    
+
     /**
      * Update module config data
      *
@@ -1259,7 +1259,7 @@ class RockMigrations extends WireData implements Module {
     public function updateModuleConfig($module, $data) {
       $module = $this->modules->get((string)$module);
       if(!$module) throw new WireException("Module not found!");
-      
+
       $newdata = $this->getModuleConfig($module);
       foreach($data as $k=>$v) $newdata[$k] = $v;
       $this->modules->saveConfig((string)$module, $newdata);
@@ -1278,7 +1278,7 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Install module
-     * 
+     *
      * If an URL is provided the module will be downloaded before installation.
      *
      * @param string $name
@@ -1308,7 +1308,7 @@ class RockMigrations extends WireData implements Module {
       $install = $this->wire(new ProcessModuleInstall());
       $install->downloadModule($url);
     }
-    
+
     /**
      * Uninstall module
      *
@@ -1335,10 +1335,10 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Migrate PW setup based on config array
-   * 
+   *
    * The method returns the used config so that you can do actions after migration
    * eg adding custom tags to all fields or templates that where migrated
-   * 
+   *
    * @return WireData
    */
   public function migrate($config, $vars = []) {
@@ -1348,7 +1348,7 @@ class RockMigrations extends WireData implements Module {
     if(is_callable($config->before)) {
       $config->before->__invoke($this);
     }
-    
+
     // setup fields
     foreach($config->fields as $name=>$data) $this->createField($name, $data['type']);
     foreach($config->fields as $name=>$data) $this->setFieldData($name, $data);
@@ -1424,7 +1424,7 @@ class RockMigrations extends WireData implements Module {
 
     // /**
     //  * Install language support.
-    //  * 
+    //  *
     //  * It can be helpful to completely remove language support in some situations:
     //  * https://processwire.com/talk/topic/7207-can%C2%B4t-install-languagesupport/
     //  *
