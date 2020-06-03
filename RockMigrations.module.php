@@ -283,278 +283,6 @@ class RockMigrations extends WireData implements Module {
   /* ##### fields ##### */
 
     /**
-     * Get field by name
-     *
-     * @param Field|string $name
-     * @return mixed
-     */
-    public function getField($name, $exception = null) {
-      if($name AND !is_string($name) AND !$name instanceof Field) {
-        $func = @debug_backtrace()[1]['function'];
-        throw new WireException("Invalid type set for field in $func");
-      }
-      $field = $this->fields->get((string)$name);
-
-      // return field when found or no exception
-      if($field) return $field;
-      if($exception === false) return;
-
-      // field was not found, throw exception
-      if(!$exception) $exception = "Field $name not found";
-      throw new WireException($exception);
-    }
-
-    /**
-     * Create a field of the given type
-     *
-     * @param string $name
-     * @param string $type
-     * @param array $options
-     * @return Field
-     */
-    public function createField($name, $typename, $options = null) {
-      $field = $this->getField($name, false);
-      if(!$field) {
-        // setup fieldtype
-        $type = $this->modules->get($typename);
-        if(!$type) {
-          // shortcut types are possible, eg "text" for "FieldtypeText"
-          $type = "Fieldtype".ucfirst($typename);
-          $type = $this->modules->get($type);
-          if(!$type) throw new WireException("Invalid Fieldtype");
-        }
-
-        // create the new field
-        if(strtolower($name) !== $name) throw new WireException("Fieldname must be lowercase!");
-        $name = strtolower($name);
-        $field = $this->wire(new Field());
-        $field->type = $type;
-        $field->name = $name;
-        $field->save();
-
-        // create end field for fieldsets
-        if($field->type instanceof FieldtypeFieldsetOpen) {
-          $field->type->getFieldsetCloseField($field, true);
-        }
-      }
-
-      // set options
-      if($options) $field = $this->setFieldData($field, $options);
-
-      return $field;
-    }
-
-    /**
-     * Set options of an options field via string
-     *
-     * @param Field|string $name
-     * @param string $options
-     * @return void
-     */
-    public function setFieldOptionsString($name, $options) {
-      $field = $this->getField($name);
-
-      $manager = $this->wire(new SelectableOptionManager());
-      $manager->setOptionsString($field, $options, false);
-      $field->save();
-
-      return $field;
-    }
-
-    /**
-     * Delete the given field
-     *
-     * @param string $name
-     * @return void
-     */
-    public function deleteField($name) {
-      $field = $this->getField($name, false);
-      if(!$field) return;
-
-      // delete _END field for fieldsets first
-      if($field->type instanceof FieldtypeFieldsetOpen) {
-        $closer = $field->type->getFieldsetCloseField($field, false);
-        $this->deleteField($closer);
-      }
-
-      // make sure we can delete the field by removing all flags
-      $field->flags = Field::flagSystemOverride;
-      $field->flags = 0;
-
-      // remove the field from all fieldgroups
-      foreach($this->fieldgroups as $fieldgroup) {
-        /** @var Fieldgroup $fieldgroup */
-        $fieldgroup->remove($field);
-        $fieldgroup->save();
-      }
-
-      return $this->fields->delete($field);
-    }
-
-    /**
-     * Delete given fields
-     *
-     * @param array $fields
-     * @return void
-     */
-    public function deleteFields($fields) {
-      foreach($fields as $field) $this->deleteField($field);
-    }
-
-    /**
-     * Set the language value of the given field
-     *
-     * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
-     *   'default' => 'Therapie',
-     *   'english' => 'Therapy',
-     * ]);
-     *
-     * @param Page|string $page
-     * @param Field|string $field
-     * @param array $data
-     * @return void
-     */
-    public function setFieldLanguageValue($page, $field, $data) {
-      $page = $this->pages->get((string)$page);
-      if(!$page->id) throw new WireException("Page not found!");
-      $field = $this->getField($field);
-
-      // set field value for all provided languages
-      foreach($data as $lang=>$val) {
-        $lang = $this->languages->get($lang);
-        if(!$lang->id) continue;
-        $page->{$field}->setLanguageValue($lang, $val);
-      }
-      $page->save();
-    }
-
-    /**
-     * Set data of a field
-     *
-     * If a template is provided the data is set in template context only.
-     * You can also provide an array of templates.
-     *
-     * Multilang is also possible:
-     * $rm->setFieldData('yourfield', [
-     *   'label' => 'foo', // default language
-     *   'label1021' => 'bar', // other language
-     * ]);
-     *
-     * @param Field|string $field
-     * @param array $data
-     * @param Template|array|string $template
-     * @return void
-     */
-    public function setFieldData($field, $data, $template = null) {
-      $field = $this->getField($field);
-
-      // set data
-      if(!$template) {
-        // set field data directly
-        foreach($data as $k=>$v) $field->{$k} = $v;
-      }
-      else {
-        // make sure the template is set as array of strings
-        if(!is_array($template)) $template = [(string)$template];
-
-        foreach($template as $t) {
-          $tpl = $this->templates->get((string)$t);
-          if(!$tpl) throw new WireException("Template $t not found");
-
-          // set field data in template context
-          $fg = $tpl->fieldgroup;
-          $current = $fg->getFieldContextArray($field->id);
-          $fg->setFieldContextArray($field->id, array_merge($current, $data));
-          $fg->saveContext();
-        }
-      }
-
-      $field->save();
-      return $field;
-    }
-
-    /**
-     * Set field order at given template
-     *
-     * The first field is always the reference for all other fields.
-     *
-     * @param array $fields
-     * @param Template|string $name
-     * @return void
-     */
-    public function setFieldOrder($fields, $name) {
-      $template = $this->templates->get((string)$name);
-      if(!$template) throw new WireException("Template $name not found");
-
-      // make sure that all fields exist
-      foreach($fields as $i=>$field) {
-        if(!$this->fields->get($field)) unset($fields[$i]);
-      }
-      $fields = array_values($fields); // reset indices
-
-      foreach($fields as $i => $field) {
-        if(!$i) continue;
-        $this->addFieldToTemplate($field, $template, $fields[$i-1]);
-      }
-    }
-
-    /**
-     * Move one field after another
-     *
-     * @param Field|string $field
-     * @param Field|string $after
-     * @param Template|string $template
-     * @return void
-     */
-    public function moveFieldAfter($field, $after, $template) {
-      $this->addFieldToTemplate($field, $template, $after);
-    }
-
-    /**
-     * Move one field before another
-     *
-     * @param Field|string $field
-     * @param Field|string $before
-     * @param Template|string $template
-     * @return void
-     */
-    public function moveFieldBefore($field, $before, $template) {
-      $this->addFieldToTemplate($field, $template, null, $before);
-    }
-
-    /**
-     * Delete template overrides for the given field
-     *
-     * Example usage:
-     * Delete custom field width for 'myfield' and 'mytemplate':
-     * $rm->deleteFieldTemplateOverrides('myfield', [
-     *   'mytemplate' => ['columnWidth'],
-     * ]);
-     *
-     * @param Field|string $field
-     * @param array $templatesettings
-     * @return void
-     */
-    public function deleteFieldTemplateOverrides($field, $templatesettings) {
-      $field = $this->getField($field);
-
-      // loop data
-      foreach($templatesettings as $tpl=>$val) {
-        // get template
-        $template = $this->templates->get((string)$tpl);
-        if(!$template) throw new WireException("Template $tpl not found");
-
-        // set field data in template context
-        $fg = $template->fieldgroup;
-        $data = $fg->getFieldContextArray($field->id);
-        foreach($val as $setting) unset($data[$setting]);
-        $fg->setFieldContextArray($field->id, $data);
-        $fg->saveContext();
-      }
-
-    }
-
-    /**
      * Add field to template
      *
      * @param Field|string $field
@@ -608,6 +336,184 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Change type of field
+     * @param Field|string $field
+     * @param string $type
+     * @param bool $keepSettings
+     * @return Field
+     */
+    public function changeFieldtype($field, $type, $keepSettings = true) {
+      $field = $this->getField($field);
+
+      // if type is already set, return early
+      if($field->type == $type) return $field;
+
+      // change type and save field
+      $field->type = $type;
+      $this->fields->changeFieldtype($field, $keepSettings);
+      $field->save();
+      return $field;
+    }
+
+    /**
+     * Create a field of the given type
+     *
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @return Field
+     */
+    public function createField($name, $typename, $options = null) {
+      $field = $this->getField($name, false);
+      if(!$field) {
+        // setup fieldtype
+        $type = $this->modules->get($typename);
+        if(!$type) {
+          // shortcut types are possible, eg "text" for "FieldtypeText"
+          $type = "Fieldtype".ucfirst($typename);
+          $type = $this->modules->get($type);
+          if(!$type) throw new WireException("Invalid Fieldtype");
+        }
+
+        // create the new field
+        if(strtolower($name) !== $name) throw new WireException("Fieldname must be lowercase!");
+        $name = strtolower($name);
+        $field = $this->wire(new Field());
+        $field->type = $type;
+        $field->name = $name;
+        $field->save();
+
+        // create end field for fieldsets
+        if($field->type instanceof FieldtypeFieldsetOpen) {
+          $field->type->getFieldsetCloseField($field, true);
+        }
+      }
+
+      // set options
+      if($options) $field = $this->setFieldData($field, $options);
+
+      return $field;
+    }
+
+    /**
+     * Delete the given field
+     *
+     * @param string $name
+     * @return void
+     */
+    public function deleteField($name) {
+      $field = $this->getField($name, false);
+      if(!$field) return;
+
+      // delete _END field for fieldsets first
+      if($field->type instanceof FieldtypeFieldsetOpen) {
+        $closer = $field->type->getFieldsetCloseField($field, false);
+        $this->deleteField($closer);
+      }
+
+      // make sure we can delete the field by removing all flags
+      $field->flags = Field::flagSystemOverride;
+      $field->flags = 0;
+
+      // remove the field from all fieldgroups
+      foreach($this->fieldgroups as $fieldgroup) {
+        /** @var Fieldgroup $fieldgroup */
+        $fieldgroup->remove($field);
+        $fieldgroup->save();
+      }
+
+      return $this->fields->delete($field);
+    }
+
+    /**
+     * Delete given fields
+     *
+     * @param array $fields
+     * @return void
+     */
+    public function deleteFields($fields) {
+      foreach($fields as $field) $this->deleteField($field);
+    }
+
+    /**
+     * Delete template overrides for the given field
+     *
+     * Example usage:
+     * Delete custom field width for 'myfield' and 'mytemplate':
+     * $rm->deleteFieldTemplateOverrides('myfield', [
+     *   'mytemplate' => ['columnWidth'],
+     * ]);
+     *
+     * @param Field|string $field
+     * @param array $templatesettings
+     * @return void
+     */
+    public function deleteFieldTemplateOverrides($field, $templatesettings) {
+      $field = $this->getField($field);
+
+      // loop data
+      foreach($templatesettings as $tpl=>$val) {
+        // get template
+        $template = $this->templates->get((string)$tpl);
+        if(!$template) throw new WireException("Template $tpl not found");
+
+        // set field data in template context
+        $fg = $template->fieldgroup;
+        $data = $fg->getFieldContextArray($field->id);
+        foreach($val as $setting) unset($data[$setting]);
+        $fg->setFieldContextArray($field->id, $data);
+        $fg->saveContext();
+      }
+
+    }
+
+    /**
+     * Get field by name
+     *
+     * @param Field|string $name
+     * @return mixed
+     */
+    public function getField($name, $exception = null) {
+      if($name AND !is_string($name) AND !$name instanceof Field) {
+        $func = @debug_backtrace()[1]['function'];
+        throw new WireException("Invalid type set for field in $func");
+      }
+      $field = $this->fields->get((string)$name);
+
+      // return field when found or no exception
+      if($field) return $field;
+      if($exception === false) return;
+
+      // field was not found, throw exception
+      if(!$exception) $exception = "Field $name not found";
+      throw new WireException($exception);
+    }
+
+    /**
+     * Move one field after another
+     *
+     * @param Field|string $field
+     * @param Field|string $after
+     * @param Template|string $template
+     * @return void
+     */
+    public function moveFieldAfter($field, $after, $template) {
+      $this->addFieldToTemplate($field, $template, $after);
+    }
+
+    /**
+     * Move one field before another
+     *
+     * @param Field|string $field
+     * @param Field|string $before
+     * @param Template|string $template
+     * @return void
+     */
+    public function moveFieldBefore($field, $before, $template) {
+      $this->addFieldToTemplate($field, $template, null, $before);
+    }
+
+    /**
      * Remove Field from Template
      *
      * @param Field|string $field
@@ -638,26 +544,6 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Change type of field
-     * @param Field|string $field
-     * @param string $type
-     * @param bool $keepSettings
-     * @return Field
-     */
-    public function changeFieldtype($field, $type, $keepSettings = true) {
-      $field = $this->getField($field);
-
-      // if type is already set, return early
-      if($field->type == $type) return $field;
-
-      // change type and save field
-      $field->type = $type;
-      $this->fields->changeFieldtype($field, $keepSettings);
-      $field->save();
-      return $field;
-    }
-
-    /**
      * Rename this field
      * @return Field|false
      */
@@ -672,6 +558,120 @@ class RockMigrations extends WireData implements Module {
       // change the old field
       $field->name = $newname;
       $field->save();
+    }
+
+    /**
+     * Set data of a field
+     *
+     * If a template is provided the data is set in template context only.
+     * You can also provide an array of templates.
+     *
+     * Multilang is also possible:
+     * $rm->setFieldData('yourfield', [
+     *   'label' => 'foo', // default language
+     *   'label1021' => 'bar', // other language
+     * ]);
+     *
+     * @param Field|string $field
+     * @param array $data
+     * @param Template|array|string $template
+     * @return void
+     */
+    public function setFieldData($field, $data, $template = null) {
+      $field = $this->getField($field);
+
+      // set data
+      if(!$template) {
+        // set field data directly
+        foreach($data as $k=>$v) $field->{$k} = $v;
+      }
+      else {
+        // make sure the template is set as array of strings
+        if(!is_array($template)) $template = [(string)$template];
+
+        foreach($template as $t) {
+          $tpl = $this->templates->get((string)$t);
+          if(!$tpl) throw new WireException("Template $t not found");
+
+          // set field data in template context
+          $fg = $tpl->fieldgroup;
+          $current = $fg->getFieldContextArray($field->id);
+          $fg->setFieldContextArray($field->id, array_merge($current, $data));
+          $fg->saveContext();
+        }
+      }
+
+      $field->save();
+      return $field;
+    }
+
+    /**
+     * Set the language value of the given field
+     *
+     * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
+     *   'default' => 'Therapie',
+     *   'english' => 'Therapy',
+     * ]);
+     *
+     * @param Page|string $page
+     * @param Field|string $field
+     * @param array $data
+     * @return void
+     */
+    public function setFieldLanguageValue($page, $field, $data) {
+      $page = $this->pages->get((string)$page);
+      if(!$page->id) throw new WireException("Page not found!");
+      $field = $this->getField($field);
+
+      // set field value for all provided languages
+      foreach($data as $lang=>$val) {
+        $lang = $this->languages->get($lang);
+        if(!$lang->id) continue;
+        $page->{$field}->setLanguageValue($lang, $val);
+      }
+      $page->save();
+    }
+
+    /**
+     * Set options of an options field via string
+     *
+     * @param Field|string $name
+     * @param string $options
+     * @return void
+     */
+    public function setFieldOptionsString($name, $options) {
+      $field = $this->getField($name);
+
+      $manager = $this->wire(new SelectableOptionManager());
+      $manager->setOptionsString($field, $options, false);
+      $field->save();
+
+      return $field;
+    }
+
+    /**
+     * Set field order at given template
+     *
+     * The first field is always the reference for all other fields.
+     *
+     * @param array $fields
+     * @param Template|string $name
+     * @return void
+     */
+    public function setFieldOrder($fields, $name) {
+      $template = $this->templates->get((string)$name);
+      if(!$template) throw new WireException("Template $name not found");
+
+      // make sure that all fields exist
+      foreach($fields as $i=>$field) {
+        if(!$this->fields->get($field)) unset($fields[$i]);
+      }
+      $fields = array_values($fields); // reset indices
+
+      foreach($fields as $i => $field) {
+        if(!$i) continue;
+        $this->addFieldToTemplate($field, $template, $fields[$i-1]);
+      }
     }
 
   /* ##### templates ##### */
