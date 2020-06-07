@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.11',
+      'version' => '0.0.12',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -1162,7 +1162,9 @@ class RockMigrations extends WireData implements Module {
      */
     public function enableAllLanguagesForPage($page) {
       $page = $this->pages->get((string)$page);
-      foreach ($this->languages as $lang) $page->set("status$lang", 1);
+      if($this->languages) {
+        foreach($this->languages as $lang) $page->set("status$lang", 1);
+      }
       $page->save();
     }
 
@@ -1608,6 +1610,26 @@ class RockMigrations extends WireData implements Module {
     if(!array_key_exists("pages", $config)) $config['pages'] = [];
 
     return $config;
+  }
+
+  /**
+   * Get pathinfo of file/directory as WireData
+   * @return WireData
+   */
+  public function info($str) {
+    $config = $this->wire('config');
+    $info = $this->wire(new WireData()); /** @var WireData $info */
+    $info->setArray(pathinfo($str));
+    $info->dirname = Paths::normalizeSeparators($info->dirname)."/";
+    $info->path = "{$info->dirname}{$info->basename}";
+    $info->url = str_replace($config->paths->root, $config->urls->root, $info->path);
+    $info->is_dir = is_dir($info->path);
+    $info->is_file = is_file($info->path);
+    $info->isDir = !$info->extension;
+    $info->isFile = !!$info->extension;
+    $info->exists = ($info->is_dir || $info->is_file);
+    if($info->is_file) $info->m = "?m=".filemtime($info->path);
+    return $info;
   }
 
   /* ##### languages ##### */
