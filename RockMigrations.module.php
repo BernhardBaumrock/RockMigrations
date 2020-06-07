@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.9',
+      'version' => '0.0.11',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -330,9 +330,40 @@ class RockMigrations extends WireData implements Module {
     public function addFieldsToTemplate($fields, $template) {
       foreach($fields as $k=>$v) {
         // if the key is an integer, it's a simple field
-        if(is_int($k)) $this->addFieldToTemplate($v, $template);
-        else $this->addFieldToTemplate($k, $template, $v);
+        if(is_int($k)) $this->addFieldToTemplate((string)$v, $template);
+        else $this->addFieldToTemplate((string)$k, $template, $v);
       }
+    }
+
+    /**
+     * Add matrix item to given field
+     * @param Field|string $field
+     * @param string $name
+     * @param array $data
+     * @return Field|null
+     */
+    public function addMatrixItem($field, $name, $data) {
+      if(!$field = $this->getField($field, false)) return;
+
+      // get number
+      $n = 1;
+      while(array_key_exists("matrix{$n}_name", $field->getArray())) $n++;
+      $prefix = "matrix{$n}_";
+
+      $field->set($prefix."name", $name);
+      $field->set($prefix."sort", $n);
+      foreach($this->getMatrixDataArray($data) as $key => $val) {
+        // eg set matrix1_label = ...
+        $field->set($prefix.$key, $val);
+        if($key === "fields") {
+          $tpl = $this->getRepeaterTemplate($field);
+          $this->addFieldsToTemplate($val, $tpl);
+        }
+      }
+
+      $field = $this->resetMatrixRepeaterFields($field);
+      $field->save();
+      return $field;
     }
 
     /**
@@ -386,6 +417,11 @@ class RockMigrations extends WireData implements Module {
         // create end field for fieldsets
         if($field->type instanceof FieldtypeFieldsetOpen) {
           $field->type->getFieldsetCloseField($field, true);
+        }
+
+        // this will auto-generate the repeater template
+        if($field->type instanceof FieldtypeRepeater) {
+          $field->type->getRepeaterTemplate($field);
         }
       }
 
@@ -544,6 +580,28 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Remove matrix item from field
+     * @param Field|string $field
+     * @param string $name
+     * @return Field|null
+     */
+    public function removeMatrixItem($field, $name) {
+      if(!$field = $this->getField($field, false)) return;
+      $info = $field->type->getMatrixTypesInfo($field, ['type'=>$name]);
+      if(!$info) return;
+
+      // reset all properties of that field
+      foreach($field->getArray() as $prop=>$val) {
+        if(strpos($prop, $info['prefix']) !== 0) continue;
+        $field->set($prop, null);
+      }
+
+      $field = $this->resetMatrixRepeaterFields($field);
+      $field->save();
+      return $field;
+    }
+
+    /**
      * Rename this field
      * @return Field|false
      */
@@ -672,6 +730,81 @@ class RockMigrations extends WireData implements Module {
         if(!$i) continue;
         $this->addFieldToTemplate($field, $template, $fields[$i-1]);
       }
+    }
+
+    /**
+     * Set matrix item data
+     * @param Field|string $field
+     * @param string $name
+     * @param array $data
+     * @return Field|null
+     */
+    public function setMatrixItemData($field, $name, $data) {
+      if(!$field = $this->getField($field, false)) return;
+      $info = $field->type->getMatrixTypesInfo($field, ['type'=>$name]);
+      if(!$info) return;
+      foreach($this->getMatrixDataArray($data) as $key => $val) {
+        // eg set matrix1_label = ...
+        $field->set($info['prefix'].$key, $val);
+        if($key === "fields") {
+          $tpl = $this->getRepeaterTemplate($field);
+          $this->addFieldsToTemplate($val, $tpl);
+        }
+      }
+
+      $field = $this->resetMatrixRepeaterFields($field);
+      $field->save();
+      return $field;
+    }
+
+    /**
+     * Set items of a RepeaterMatrix field
+     *
+     * If wipe is set to TRUE it will wipe all existing matrix types before
+     * setting the new ones. Otherwise it will override settings of old types
+     * and add the type to the end of the matrix if it does not exist yet.
+     *
+     * CAUTION: wipe = true will also delete all field data stored in the
+     * repeater matrix fields!!
+     *
+     * Usage:
+     *  $rm->setMatrixItems('your_matrix_field', [
+     *    'foo' => [
+     *      'label' => 'foo label',
+     *      'fields' => ['field1', 'field2'],
+     *    ],
+     *    'bar' => [
+     *      'label' => 'bar label',
+     *      'fields' => ['field1', 'field3'],
+     *    ],
+     *  ], true);
+     *
+     * @param Field|string $field
+     * @param array $items
+     * @param bool $wipe
+     * @return Field|null
+     */
+    public function setMatrixItems($field, $items, $wipe = false) {
+      if(!$this->modules->isInstalled('FieldtypeRepeaterMatrix')) return;
+      if(!$field = $this->getField($field, false)) return;
+
+      // get all matrix types of that field
+      $types = $field->type->getMatrixTypes();
+
+      // if wipe is turned on we remove all existing items
+      // this is great when you want to control the matrix solely by migrations
+      if($wipe) {
+        foreach($types as $type => $v) $this->removeMatrixItem($field, $type);
+      }
+
+      // loop all provided items
+      foreach($items as $name => $data) {
+        $type = $field->type->getMatrixTypeByName($name);
+        if(!$type) $field = $this->addMatrixItem($field, $name, $data);
+        else $this->setMatrixItemData($field, $name, $data);
+      }
+
+      return $field;
     }
 
   /* ##### templates ##### */
@@ -867,6 +1000,10 @@ class RockMigrations extends WireData implements Module {
       $last = null;
       $names = [];
       foreach($fields as $name=>$data) {
+        if(is_int($name) AND is_int($data)) {
+          $name = $this->getField((string)$data)->name;
+          $data = [];
+        }
         if(is_int($name)) {
           $name = $data;
           $data = [];
@@ -1339,6 +1476,54 @@ class RockMigrations extends WireData implements Module {
       $module = $this->modules->get((string)$name);
       $this->uninstallModule($name);
       $this->files->rmdir($this->config->paths($module), true);
+    }
+
+  /* ##### helpers ##### */
+
+    /**
+     * Sanitize repeater matrix array
+     * @param array $data
+     * @return array
+     */
+    private function getMatrixDataArray($data) {
+      $newdata = [];
+      foreach($data as $key=>$val) {
+        // make sure fields is an array of ids
+        if($key === 'fields') {
+          $ids = [];
+          foreach($val as $_field) {
+            $ids[] = $this->fields->get((string)$_field)->id;
+          }
+          $val = $ids;
+        }
+        $newdata[$key] = $val;
+      }
+      return $newdata;
+    }
+
+    /**
+     * Reset repeaterFields property of matrix field
+     * @param Field $field
+     * @return Field
+     */
+    private function resetMatrixRepeaterFields(Field $field) {
+      $ids = [$this->fields->get('repeater_matrix_type')->id];
+      $n = 1;
+      while(array_key_exists("matrix{$n}_name", $field->getArray())) {
+        $ids = array_merge($ids, $field->get("matrix{$n}_fields") ?: []);
+        $n++;
+      }
+      $field->set('repeaterFields', $ids);
+
+      // remove unneeded fields
+      $tpl = $this->getRepeaterTemplate($field);
+      foreach($tpl->fields as $f) {
+        if($f->name === 'repeater_matrix_type') continue;
+        if(in_array($f->id, $ids)) continue;
+        $this->removeFieldFromTemplate($f, $tpl);
+      }
+
+      return $field;
     }
 
   /* ##### config file support ##### */
