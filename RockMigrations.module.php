@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.12',
+      'version' => '0.0.13',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -637,6 +637,16 @@ class RockMigrations extends WireData implements Module {
      */
     public function setFieldData($field, $data, $template = null) {
       $field = $this->getField($field);
+
+      // prepare data array
+      foreach($data as $key=>$val) {
+
+        // this makes it possible to set the template via name
+        if($key === "template_id") {
+          $data[$key] = $this->templates->get($val)->id;
+        }
+
+      }
 
       // set data
       if(!$template) {
