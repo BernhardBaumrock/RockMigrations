@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.13',
+      'version' => '0.0.14',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -1640,6 +1640,21 @@ class RockMigrations extends WireData implements Module {
     $info->exists = ($info->is_dir || $info->is_file);
     if($info->is_file) $info->m = "?m=".filemtime($info->path);
     return $info;
+  }
+
+
+  /**
+   * Load classes in given folder
+   */
+  public function loadClasses($dir, $namespace = null) {
+    foreach($this->files->find($dir, ['extensions' => ['php']]) as $file) {
+      $info = $this->info($file);
+      require($info->path);
+      $class = $info->filename;
+      if($namespace) $class = "\\$namespace\\$class";
+      $tmp = new $class();
+      if(method_exists($tmp, "init")) $tmp->init();
+    }
   }
 
   /* ##### languages ##### */
