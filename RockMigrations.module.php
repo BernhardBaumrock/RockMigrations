@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.14',
+      'version' => '0.0.15',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -1491,6 +1491,46 @@ class RockMigrations extends WireData implements Module {
     }
 
   /* ##### helpers ##### */
+
+    /**
+     * Fire the callback if the version upgrading to ($to) is higher or equal
+     * to provided version ($version)
+     *
+     * 0.0.1 --> 0.0.2, VERSION = 0.0.2 --> fires
+     * 0.0.1 --> 0.0.5, VERSION = 0.0.2 --> fires
+     * 0.0.4 --> 0.0.5, VERSION = 0.0.2 --> fires
+     * 0.0.4 --> 0.0.5, VERSION = 1.0.2 --> does not fire
+     *
+     * @return void
+     */
+    public function fireSince($version, $to, $func) {
+      if($this->isLower($to, $version)) return;
+      $func->__invoke($this);
+    }
+
+    /**
+     * Is v1 lower than v2?
+     * @return bool
+     */
+    public function isLower($v1, $v2) {
+      return version_compare($v1, $v2) < 0;
+    }
+
+    /**
+     * Is v1 higher than v2?
+     * @return bool
+     */
+    public function isHigher($v1, $v2) {
+      return version_compare($v1, $v2) > 0;
+    }
+
+    /**
+     * Is v1 the same as v2?
+     * @return bool
+     */
+    public function isSame($v1, $v2) {
+      return version_compare($v1, $v2) === 0;
+    }
 
     /**
      * Sanitize repeater matrix array
