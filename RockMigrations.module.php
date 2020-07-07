@@ -1689,7 +1689,7 @@ class RockMigrations extends WireData implements Module {
   public function loadClasses($dir, $namespace = null) {
     foreach($this->files->find($dir, ['extensions' => ['php']]) as $file) {
       $info = $this->info($file);
-      require($info->path);
+      require_once($info->path);
       $class = $info->filename;
       if($namespace) $class = "\\$namespace\\$class";
       $tmp = new $class();
