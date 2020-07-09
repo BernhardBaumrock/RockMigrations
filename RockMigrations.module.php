@@ -1684,7 +1684,6 @@ class RockMigrations extends WireData implements Module {
     return $info;
   }
 
-
   /**
    * Load classes in given folder
    */
