@@ -11,7 +11,7 @@ class RockAdminTools extends WireData implements Module, ConfigurableModule {
   public static function getModuleInfo() {
     return [
       'title' => 'RockAdminTools',
-      'version' => '0.0.1',
+      'version' => '0.0.2',
       'summary' => 'Tools for the PW backend',
       'autoload' => true,
       'singular' => true,
@@ -84,6 +84,9 @@ class RockAdminTools extends WireData implements Module, ConfigurableModule {
         $fs->add($f);
       }
     }
+
+    // return fieldset
+    $event->return = $fs;
   }
 
   /**
