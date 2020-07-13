@@ -1598,12 +1598,12 @@ class RockMigrations extends WireData implements Module {
       $config->before->__invoke($this);
     }
 
-    // setup fields
+    // create fields+templates
     foreach($config->fields as $name=>$data) $this->createField($name, $data['type']);
-    foreach($config->fields as $name=>$data) $this->setFieldData($name, $data);
-
-    // setup templates
     foreach($config->templates as $name=>$data) $this->createTemplate($name, false);
+
+    // set field+template data after they have been created
+    foreach($config->fields as $name=>$data) $this->setFieldData($name, $data);
     foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data, true);
 
     // setup pages
