@@ -1759,6 +1759,23 @@ class RockMigrations extends WireData implements Module {
 
     return $language;
   }
+  
+  /**
+   * Deletes a language
+   * 
+   * @param string $languageName
+   * 
+   * @return void
+   */
+  public function deleteLanguage(string $languageName) {
+    if ($languageName == "default") throw new WireException("You cannot delete default language."); // Not sure if this should be allowed?
+
+    $language = $this->languages->get($languageName);
+    if (! $language->name) return;
+
+    $this->languages->delete($language);
+  }
+  
     /**
      * Language support via API is tricky! For the time it is recommended to
      * enable language support manually and then do all further changes via API.
