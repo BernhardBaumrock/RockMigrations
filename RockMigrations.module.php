@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.17',
+      'version' => '0.0.18',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -1406,7 +1406,10 @@ class RockMigrations extends WireData implements Module {
      */
     public function setModuleConfig($module, $data) {
       $module = $this->modules->get((string)$module);
-      if(!$module) throw new WireException("Module not found!");
+      if(!$module) {
+        if($this->config->debug) throw new WireException("Module not found!");
+        else return;
+      }
       $this->modules->saveConfig($module, $data);
     }
 
