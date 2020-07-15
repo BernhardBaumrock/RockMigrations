@@ -668,6 +668,12 @@ class RockMigrations extends WireData implements Module {
           $fg->saveContext();
         }
       }
+      
+      // Make sure Table field actually updates database schema
+      if ($field->type == "FieldtypeTable") {
+        $fieldtypeTable = $field->getFieldtype();
+        $fieldtypeTable->_checkSchema($field, true); // Commit changes
+      }
 
       $field->save();
       return $field;
