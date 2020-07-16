@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.19',
+      'version' => '0.0.20',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -703,6 +703,7 @@ class RockMigrations extends WireData implements Module {
     public function setFieldLanguageValue($page, $field, $data) {
       $page = $this->pages->get((string)$page);
       if(!$page->id) throw new WireException("Page not found!");
+      $page->of(false);
       $field = $this->getField($field);
 
       // set field value for all provided languages
