@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.18',
+      'version' => '0.0.19',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -644,6 +644,20 @@ class RockMigrations extends WireData implements Module {
         // this makes it possible to set the template via name
         if($key === "template_id") {
           $data[$key] = $this->templates->get($val)->id;
+        }
+
+        // support repeater field array
+        if($key === "repeaterFields") {
+          $fields = $data[$key];
+          foreach($fields as $i=>$_field) {
+            $fields[$i] = $this->fields->get((string)$_field)->id;
+          }
+          $data[$key] = $fields;
+
+          // add fields to repeater template
+          if($tpl = $this->getRepeaterTemplate($field)) {
+            $this->addFieldsToTemplate($fields, $tpl);
+          }
         }
 
       }
