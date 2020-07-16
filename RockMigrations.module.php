@@ -1051,6 +1051,9 @@ class RockMigrations extends WireData implements Module {
      * If the page exists it will return the existing page.
      * All available languages will be set active by default for this page.
      *
+     * If you need to set a multilang title use
+     * $rm->setFieldLanguageValue($page, "title", ['default'=>'foo', 'german'=>'bar']);
+     *
      * @param array|string $title
      * @param string $name
      * @param Template|string $template
