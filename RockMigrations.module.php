@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.20',
+      'version' => '0.0.21',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -682,7 +682,7 @@ class RockMigrations extends WireData implements Module {
           $fg->saveContext();
         }
       }
-      
+
       // Make sure Table field actually updates database schema
       if ($field->type == "FieldtypeTable") {
         $fieldtypeTable = $field->getFieldtype();
@@ -849,6 +849,38 @@ class RockMigrations extends WireData implements Module {
       $childs = $parent->childTemplates;
       $childs[] = $child;
       $this->setTemplateData($parent, ['childTemplates' => $childs]);
+    }
+
+    /**
+     * Add role to template
+     *
+     * Usage:
+     * $rm->addRoleToTemplate(["view", "edit"], "myrole", "mytemplate");
+     *
+     * @param mixed $permission
+     * @param mixed $role
+     * @param mixed $tpl
+     * @return void
+     */
+    public function addRoleToTemplate($permission, $role, $tpl) {
+      if(is_array($permission)) {
+        foreach($permission as $p) $this->addRoleToTemplate($p, $role, $tpl);
+        return;
+      }
+
+      $tpl = $this->wire->templates->get((string)$tpl);
+      $role = $this->wire->roles->get((string)$role);
+      $tpl->useRoles = 1;
+
+      $prop = "roles";
+      if($permission == "edit") $prop = "editRoles";
+      if($permission == "add") $prop = "addRoles";
+      if($permission == "create") $prop = "createRoles";
+
+      $arr = $this->getRoleArray($tpl->$prop);
+      $newArray = array_merge($arr, [(int)(string)$role]);
+      $tpl->$prop = $newArray;
+      $tpl->save();
     }
 
     /**
@@ -1538,6 +1570,42 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Sanitize repeater matrix array
+     * @param array $data
+     * @return array
+     */
+    private function getMatrixDataArray($data) {
+      $newdata = [];
+      foreach($data as $key=>$val) {
+        // make sure fields is an array of ids
+        if($key === 'fields') {
+          $ids = [];
+          foreach($val as $_field) {
+            $ids[] = $this->fields->get((string)$_field)->id;
+          }
+          $val = $ids;
+        }
+        $newdata[$key] = $val;
+      }
+      return $newdata;
+    }
+
+    /**
+     * Get role array containing only role ids
+     * @param mixed $data
+     * @return array
+     */
+    private function getRoleArray($data) {
+      $arr = [];
+      foreach($data as $item) {
+        if(is_int($item)) $arr[] = $item;
+        if(is_object($item)) $item = (string)$item;
+        if(is_string($item)) $arr[] = (int)$item;
+      }
+      return $arr;
+    }
+
+    /**
      * Is v1 lower than v2?
      * @return bool
      */
@@ -1559,27 +1627,6 @@ class RockMigrations extends WireData implements Module {
      */
     public function isSame($v1, $v2) {
       return version_compare($v1, $v2) === 0;
-    }
-
-    /**
-     * Sanitize repeater matrix array
-     * @param array $data
-     * @return array
-     */
-    private function getMatrixDataArray($data) {
-      $newdata = [];
-      foreach($data as $key=>$val) {
-        // make sure fields is an array of ids
-        if($key === 'fields') {
-          $ids = [];
-          foreach($val as $_field) {
-            $ids[] = $this->fields->get((string)$_field)->id;
-          }
-          $val = $ids;
-        }
-        $newdata[$key] = $val;
-      }
-      return $newdata;
     }
 
     /**
