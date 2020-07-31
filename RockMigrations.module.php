@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.21',
+      'version' => '0.0.22',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -291,7 +291,8 @@ class RockMigrations extends WireData implements Module {
      */
     public function addFieldToTemplate($field, $template, $afterfield = null, $beforefield = null) {
       $field = $this->getField($field);
-      $template = $this->getTemplate($template);
+      $template = $this->getTemplate($template, false);
+      if(!$template) return;
 
       $afterfield = $this->getField($afterfield, false);
       $beforefield = $this->getField($beforefield, false);
@@ -870,6 +871,10 @@ class RockMigrations extends WireData implements Module {
 
       $tpl = $this->wire->templates->get((string)$tpl);
       $role = $this->wire->roles->get((string)$role);
+
+      if(!$tpl) return;
+      if(!$role) return;
+
       $tpl->useRoles = 1;
 
       $prop = "roles";
