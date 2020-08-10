@@ -1662,56 +1662,6 @@ class RockMigrations extends WireData implements Module {
   /* ##### config file support ##### */
 
   /**
-   * Migrate PW setup based on config array
-   *
-   * The method returns the used config so that you can do actions after migration
-   * eg adding custom tags to all fields or templates that where migrated
-   *
-   * @return WireData
-   */
-  public function migrate($config, $vars = []) {
-    $config = $this->getConfig($config, $vars);
-
-    // trigger before callback
-    if(is_callable($config->before)) {
-      $config->before->__invoke($this);
-    }
-
-    // create fields+templates
-    foreach($config->fields as $name=>$data) $this->createField($name, $data['type']);
-    foreach($config->templates as $name=>$data) $this->createTemplate($name, false);
-
-    // set field+template data after they have been created
-    foreach($config->fields as $name=>$data) $this->setFieldData($name, $data);
-    foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data, true);
-
-    // setup pages
-    foreach($config->pages as $name=>$data) {
-      if(is_int($name)) {
-        // no name provided
-        $name = uniqid();
-      }
-
-      $d = $this->wire(new WireData()); /** @var WireData $d */
-      $d->setArray($data);
-      $this->createPage(
-        $d->title ?: $name,
-        $name,
-        $d->template,
-        $d->parent,
-        $d->status,
-        $d->data);
-    }
-
-    // trigger after callback
-    if(is_callable($config->after)) {
-      $config->after->__invoke($this);
-    }
-
-    return $config;
-  }
-
-  /**
    * Get config data object
    * @return WireData
    */
@@ -1775,6 +1725,56 @@ class RockMigrations extends WireData implements Module {
       $tmp = new $class();
       if(method_exists($tmp, "init")) $tmp->init();
     }
+  }
+
+  /**
+   * Migrate PW setup based on config array
+   *
+   * The method returns the used config so that you can do actions after migration
+   * eg adding custom tags to all fields or templates that where migrated
+   *
+   * @return WireData
+   */
+  public function migrate($config, $vars = []) {
+    $config = $this->getConfig($config, $vars);
+
+    // trigger before callback
+    if(is_callable($config->before)) {
+      $config->before->__invoke($this);
+    }
+
+    // create fields+templates
+    foreach($config->fields as $name=>$data) $this->createField($name, $data['type']);
+    foreach($config->templates as $name=>$data) $this->createTemplate($name, false);
+
+    // set field+template data after they have been created
+    foreach($config->fields as $name=>$data) $this->setFieldData($name, $data);
+    foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data, true);
+
+    // setup pages
+    foreach($config->pages as $name=>$data) {
+      if(is_int($name)) {
+        // no name provided
+        $name = uniqid();
+      }
+
+      $d = $this->wire(new WireData()); /** @var WireData $d */
+      $d->setArray($data);
+      $this->createPage(
+        $d->title ?: $name,
+        $name,
+        $d->template,
+        $d->parent,
+        $d->status,
+        $d->data);
+    }
+
+    // trigger after callback
+    if(is_callable($config->after)) {
+      $config->after->__invoke($this);
+    }
+
+    return $config;
   }
 
   /* ##### languages ##### */
