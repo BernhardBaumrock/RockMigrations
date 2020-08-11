@@ -739,10 +739,6 @@ class RockMigrations extends WireData implements Module {
 
       $manager = $this->wire(new SelectableOptionManager());
 
-      // reset field to avoid warnings of same key
-      $manager->setOptionsString($field, "", false);
-      $field->save();
-
       // now set the options
       $manager->setOptionsString($field, $options, false);
       $field->save();
