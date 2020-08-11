@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.22',
+      'version' => '0.0.23',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -725,6 +725,11 @@ class RockMigrations extends WireData implements Module {
     /**
      * Set options of an options field via string
      *
+     * $rm->setFieldOptionsString("yourfield", "
+     *   1=foo|My Foo Option
+     *   2=bar|My Bar Option
+     * ");
+     *
      * @param Field|string $name
      * @param string $options
      * @return void
@@ -733,6 +738,12 @@ class RockMigrations extends WireData implements Module {
       $field = $this->getField($name);
 
       $manager = $this->wire(new SelectableOptionManager());
+
+      // reset field to avoid warnings of same key
+      $manager->setOptionsString($field, "", false);
+      $field->save();
+
+      // now set the options
       $manager->setOptionsString($field, $options, false);
       $field->save();
 
