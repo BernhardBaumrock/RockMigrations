@@ -734,13 +734,13 @@ class RockMigrations extends WireData implements Module {
      * @param string $options
      * @return void
      */
-    public function setFieldOptionsString($name, $options) {
+    public function setFieldOptionsString($name, $options, $removeOthers = false) {
       $field = $this->getField($name);
 
       $manager = $this->wire(new SelectableOptionManager());
 
       // now set the options
-      $manager->setOptionsString($field, $options, false);
+      $manager->setOptionsString($field, $options, $removeOthers);
       $field->save();
 
       return $field;
