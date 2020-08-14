@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.23',
+      'version' => '0.0.24',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -947,7 +947,7 @@ class RockMigrations extends WireData implements Module {
 
       // delete the fieldgroup
       $fg = $this->fieldgroups->get($name);
-      $this->fieldgroups->delete($fg);
+      if($fg) $this->fieldgroups->delete($fg);
     }
 
     /**
