@@ -1705,6 +1705,7 @@ class RockMigrations extends WireData implements Module {
    * @return WireData
    */
   public function info($str) {
+    if($str instanceof Pagefile) $str = $str->filename;
     $config = $this->wire('config');
     $info = $this->wire(new WireData()); /** @var WireData $info */
     $info->setArray(pathinfo($str));
