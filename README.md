@@ -105,7 +105,27 @@ This makes creating migrations really easy.
 
 ## Examples
 
-Please see the readme of the RockMigrationsDemo Repo for some examples of what you can do and how: https://github.com/BernhardBaumrock/RockMigrationsDemo
+### Options fields
+
+```php
+$rm->migrate([
+  'fields' => [
+    'yourfield' => [
+      'type' => 'options',
+      "inputfieldClass" => "InputfieldCheckboxes",
+      'icon' => 'bolt',
+    ],
+  ],
+]);
+    
+$rm->setFieldOptionsString("yourfield", "
+  1=one|Eins
+  2=two|Zwei
+  3=three|Drei
+ ", true);
+ ```
+
+Please also see the readme of the RockMigrationsDemo Repo for some examples of what you can do and how: https://github.com/BernhardBaumrock/RockMigrationsDemo
 
 ## Run Migrations
 
