@@ -190,3 +190,38 @@ $downgrade = function(RockMigrations $rm) {
 ```
 
 If you are using RockMigrations I'm happy to hear about that: https://processwire.com/talk/topic/21212-rockmigrations-easy-migrations-from-devstaging-to-live-server/
+
+## Working with RepeaterMatrix fields
+
+The module provides limited support for Repeater Matrix. Unfortunately matrix fields are a litte more complex than regular fields so manipulating them is also more complicated because  there is no public API that can be used. Internally all fields of a matrix field live on the same template. There are additional settings for this template that tell the system which fields belong to which matrix type:
+
+![img](https://i.imgur.com/Rm4to67.png)
+
+### Adding types and fields
+
+Once you have a new matrix field you can add new types like this:
+
+```php
+$f = $rm->createField("matrixdemo", 'FieldtypeRepeaterMatrix');
+$rm->addMatrixItem($f, "test", [
+  'fields' => ['title', 'email'],
+]);
+```
+
+Running this command multiple times will add those fields multiple times though. If that is not what you want you can use `setMatrixItems`.
+
+```php
+$rm->setMatrixItems($f, [
+  'foo' => [
+    'label' => 'foo type label',
+    'fields' => [
+      // see notes below
+      'title',
+      'email',
+    ],
+  ],
+]);
+```
+
+![img](https://i.imgur.com/7BUKiou.png)
+
