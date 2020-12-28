@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.24',
+      'version' => '0.0.25',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -276,6 +276,28 @@ class RockMigrations extends WireData implements Module {
    */
   private function getMigrationsPath() {
     return $this->config->paths($this->module) . $this->className() . "/";
+  }
+
+  /**
+   * Call init() of pageclass if it exists
+   * Usage: Call $rm->initPageClass("/foo") in init() of an autoload module
+   */
+  public function initPageClass($page) {
+    $page = $this->wire->pages->get((string)$page);
+    if(!$page->id) return;
+    if(!method_exists($page, "init")) return;
+    $page->init();
+  }
+
+  /**
+   * Call ready() of pageclass if it exists
+   * Usage: Call $rm->readyPageClass("/foo") in ready() of an autoload module
+   */
+  public function readyPageClass($page) {
+    $page = $this->wire->pages->get((string)$page);
+    if(!$page->id) return;
+    if(!method_exists($page, "ready")) return;
+    $page->ready();
   }
 
   /* ##################### RockMigrations API Methods ##################### */
