@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.25',
+      'version' => '0.0.26',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -274,7 +274,7 @@ class RockMigrations extends WireData implements Module {
    *
    * @return void
    */
-  private function getMigrationsPath() {
+  public function ___getMigrationsPath() {
     return $this->config->paths($this->module) . $this->className() . "/";
   }
 
