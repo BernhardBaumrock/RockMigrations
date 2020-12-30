@@ -1,4 +1,8 @@
 <?php namespace ProcessWire;
+/**
+ * THIS FILE IS DEPRECATED
+ * See https://bit.ly/2KOwazZ
+ */
 return [
   'before' => function(RockMigrations $rm) {
     $rm->deletePage("/foos");
@@ -73,7 +77,7 @@ return [
       'template' => "foo",
       'parent' => "/foos",
     ],
-    
+
     // bar pages
     'bars' => [
       'title' => "bars page",
