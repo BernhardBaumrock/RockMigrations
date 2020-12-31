@@ -14,6 +14,6 @@
     }
   ],
   "require": {
-    "hari/pw-module": "~1.0",
+    "hari/pw-module": "~1.0"
   }
 }
