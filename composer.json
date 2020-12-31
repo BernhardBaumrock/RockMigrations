@@ -1,5 +1,5 @@
 {
-  "name": "baumrock/RockMigrations",
+  "name": "baumrock/rockmigrations",
   "type": "pw-module",
   "description": "Module to handle Migrations inside your Modules easily.",
   "keywords": [ "processwire", "migrations" ],
