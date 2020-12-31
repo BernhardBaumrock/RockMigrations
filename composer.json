@@ -1,0 +1,19 @@
+{
+  "name": "baumrock/RockMigrations",
+  "type": "pw-module",
+  "description": "Module to handle Migrations inside your Modules easily.",
+  "keywords": [ "processwire", "migrations" ],
+  "homepage": "https://processwire.com/talk/topic/21212-rockmigrations-easy-migrations-from-devstaging-to-live-server/",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Bernhard Baumrock",
+      "email": "office@baumrock.com",
+      "homepage": "https://www.baumrock.com",
+      "role": "CEO"
+    }
+  ],
+  "require": {
+    "hari/pw-module": "~1.0",
+  }
+}
