@@ -12,7 +12,7 @@ I just didn't like the way the other module works. You need to create a file for
 
 ## Example
 
-Please see the file `MigrationsExample.module.php` for a sample setup: https://github.com/BernhardBaumrock/RockMigrations/blob/master/examples/MigrationsExample.module.php
+Please copy the file `MigrationsExample.module.php` to `site/modules` and install it to see an example of how I'm mostly using RockMigrations at the moment: https://github.com/BernhardBaumrock/RockMigrations/blob/master/examples/MigrationsExample.module.php
 
 Some examples of outdated techniques I'm not using any more are in the old readme file: https://github.com/BernhardBaumrock/RockMigrations/blob/fdd763485ca572d45143067d4966d9f49c572a95/README.md
 
