@@ -656,9 +656,10 @@ class RockMigrations extends WireData implements Module {
      * @param Field|string $field
      * @param array $data
      * @param Template|array|string $template
+     * @param string|null $matrixItem
      * @return void
      */
-    public function setFieldData($field, $data, $template = null) {
+    public function setFieldData($field, $data, $template = null, $matrixItem = null) {
       $field = $this->getField($field);
 
       // prepare data array
@@ -695,13 +696,21 @@ class RockMigrations extends WireData implements Module {
         if(!is_array($template)) $template = [(string)$template];
 
         foreach($template as $t) {
-          $tpl = $this->templates->get((string)$t);
+          $tpl = ($matrixItem) ? $this->templates->get("repeater_" . (string)$t) : $this->templates->get((string)$t);
           if(!$tpl) throw new WireException("Template $t not found");
+
+          if($matrixItem) {
+            if (!$matrixField = $this->getField((string)$t, false)) return;
+            $matrixItemInfo = $matrixField->type->getMatrixTypesInfo($matrixField, ['type' => $matrixItem]);
+            $matrixData["NS_matrix" . $matrixItemInfo["type"]] = $data;
+            unset($data);
+            $data = $matrixData;
+          }
 
           // set field data in template context
           $fg = $tpl->fieldgroup;
           $current = $fg->getFieldContextArray($field->id);
-          $fg->setFieldContextArray($field->id, array_merge($current, $data));
+          $fg->setFieldContextArray($field->id, array_merge_recursive($current, $data));
           $fg->saveContext();
         }
       }
