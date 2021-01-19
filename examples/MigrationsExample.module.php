@@ -39,11 +39,7 @@ class MigrationsExample extends WireData implements Module, ConfigurableModule {
 
   public function init() {
     // trigger migration of every modules refresh of superusers
-    $this->addHookAfter("Modules::refresh", function($event) {
-      if(!$event->user->isSuperuser()) return;
-      if(!$event->modules->isInstalled($this)) return;
-      $this->migrate();
-    });
+    $this->rm()->fireOnRefresh($this, "migrate");
   }
 
   /**
