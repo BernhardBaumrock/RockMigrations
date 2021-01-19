@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.26',
+      'version' => '0.0.27',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -164,6 +164,21 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
+   * This will add a hook after Modules::refresh
+   * It will be executed only for superusers!
+   *
+   * Usage:
+   * In your module's init() use
+   * $rm->fireOnRefresh($this, "migrate");
+   *
+   * @return void
+   */
+  public function fireOnRefresh($module, $method) {
+    if(!$this->wire->user->isSuperuser()) return;
+    $this->wire->addHookAfter("Modules::refresh", $module, $method);
+  }
+
+  /**
    * Get Migration Object from Version Number
    *
    * @param string $version
@@ -279,6 +294,24 @@ class RockMigrations extends WireData implements Module {
    */
   public function testUpgrade($version) {
     $this->test($version);
+  }
+
+  /**
+   * Trigger method of class if it exists
+   *
+   * Usage:
+   *
+   * In your module's init()
+   * $rm->trigger("\Foo\Bar", "init");
+   *
+   * In your module's ready()
+   * $rm->trigger("\Foo\Bar", "init");
+   *
+   * @return void
+   */
+  public function trigger($class, $method) {
+    $obj = new $class();
+    if(method_exists($obj, $method)) $obj->$method();
   }
 
   /**
