@@ -32,16 +32,22 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * Set module that is controlled
+   * Execute downgrade of given version
    *
-   * @param string|Module $module
+   * @param string $version
    * @return void
    */
-  public function setModule($module) {
-    $module = $this->modules->get((string)$module);
-    if(!$module instanceof Module) throw new WireException("This is not a valid Module!");
-    $this->module = $module;
-    return $this;
+  public function down($version) {
+    // check if module is set
+    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
+
+    // get migration
+    $migration = $this->getMigration($version);
+    if(!$migration) throw new WireException("Migration $version not found");
+
+    // now we execute the upgrade
+    $prev = @$migration->getPrev()->version;
+    $this->executeUpgrade($version, $prev);
   }
 
   /**
@@ -123,72 +129,6 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * for backwards compatibility
-   */
-  public function executeUpgrade($from, $to, $module = null) {
-    return $this->execute($from, $to, $module);
-  }
-
-  /**
-   * Test upgrade for given version
-   *
-   * This will execute the downgrade and then the upgrade of only this version.
-   *
-   * @param string $version
-   * @return void
-   */
-  public function test($version) {
-    $this->down($version);
-    $this->modules->refresh();
-    $this->up($version);
-  }
-
-  /**
-   * For backwards compatibility
-   */
-  public function testUpgrade($version) {
-    $this->test($version);
-  }
-
-  /**
-   * Execute upgrade of given version
-   *
-   * @param string $version
-   * @return void
-   */
-  public function up($version) {
-    // check if module is set
-    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
-
-    // get migration
-    $migration = $this->getMigration($version);
-    if(!$migration) throw new WireException("Migration $version not found");
-
-    // now we execute the upgrade
-    $prev = @$migration->getPrev()->version;
-    $this->executeUpgrade($prev, $version);
-  }
-
-  /**
-   * Execute downgrade of given version
-   *
-   * @param string $version
-   * @return void
-   */
-  public function down($version) {
-    // check if module is set
-    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
-
-    // get migration
-    $migration = $this->getMigration($version);
-    if(!$migration) throw new WireException("Migration $version not found");
-
-    // now we execute the upgrade
-    $prev = @$migration->getPrev()->version;
-    $this->executeUpgrade($version, $prev);
-  }
-
-  /**
    * Execute all Upgrade Scripts on Installation
    *
    * @return void
@@ -214,6 +154,13 @@ class RockMigrations extends WireData implements Module {
     $version = $this->modules->getModuleInfo($this->module)['version'];
     $versionStr = $this->modules->formatVersion($version);
     return $this->executeUpgrade($versionStr, null);
+  }
+
+  /**
+   * for backwards compatibility
+   */
+  public function executeUpgrade($from, $to, $module = null) {
+    return $this->execute($from, $to, $module);
   }
 
   /**
@@ -298,6 +245,59 @@ class RockMigrations extends WireData implements Module {
     if(!$page->id) return;
     if(!method_exists($page, "ready")) return;
     $page->ready();
+  }
+
+  /**
+   * Set module that is controlled
+   *
+   * @param string|Module $module
+   * @return void
+   */
+  public function setModule($module) {
+    $module = $this->modules->get((string)$module);
+    if(!$module instanceof Module) throw new WireException("This is not a valid Module!");
+    $this->module = $module;
+    return $this;
+  }
+
+  /**
+   * Test upgrade for given version
+   *
+   * This will execute the downgrade and then the upgrade of only this version.
+   *
+   * @param string $version
+   * @return void
+   */
+  public function test($version) {
+    $this->down($version);
+    $this->modules->refresh();
+    $this->up($version);
+  }
+
+  /**
+   * For backwards compatibility
+   */
+  public function testUpgrade($version) {
+    $this->test($version);
+  }
+
+  /**
+   * Execute upgrade of given version
+   *
+   * @param string $version
+   * @return void
+   */
+  public function up($version) {
+    // check if module is set
+    if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
+
+    // get migration
+    $migration = $this->getMigration($version);
+    if(!$migration) throw new WireException("Migration $version not found");
+
+    // now we execute the upgrade
+    $prev = @$migration->getPrev()->version;
+    $this->executeUpgrade($prev, $version);
   }
 
   /* ##################### RockMigrations API Methods ##################### */
