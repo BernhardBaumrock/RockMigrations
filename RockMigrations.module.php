@@ -242,24 +242,50 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Call init() of pageclass if it exists
-   * Usage: Call $rm->initPageClass("/foo") in init() of an autoload module
+   *
+   * Usage:
+   * The preferred usage is to use the classname to load the class.
+   * This makes sure that the init() is triggered even if no page exists.
+   *
+   * In init() of a module:
+   * $rm->initPageClass("MyCustomPageClass");
+   *
+   * Usage on existing pages:
+   * $rm->initPageClass("/foo");
+   *
+   * @return void
    */
-  public function initPageClass($page) {
-    $page = $this->wire->pages->get((string)$page);
-    if(!$page->id) return;
-    if(!method_exists($page, "init")) return;
-    $page->init();
+  public function initPageClass($data, $options = []) {
+    $opt = $this->wire(new WireData()); /** @var WireData $opt */
+    $opt->setArray([
+      'method' => 'init',
+      'namespace' => 'ProcessWire',
+    ]);
+    $opt->setArray($options);
+
+    // load existing page or setup a new one
+    try {
+      $page = $this->wire->pages->get((string)$data);
+    } catch (\Throwable $th) {
+      $this->wire->classLoader->loadClass($data);
+      $class = "\\{$opt->namespace}\\$data";
+      $page = $this->wire(new $class());
+    }
+
+    // trigger $page->init() or $page->ready()
+    if(!method_exists($page, $opt->method)) return;
+    $page->{$opt->method}();
   }
 
   /**
    * Call ready() of pageclass if it exists
-   * Usage: Call $rm->readyPageClass("/foo") in ready() of an autoload module
+   *
+   * See initPageClass() for docs.
+   *
+   * @return void
    */
-  public function readyPageClass($page) {
-    $page = $this->wire->pages->get((string)$page);
-    if(!$page->id) return;
-    if(!method_exists($page, "ready")) return;
-    $page->ready();
+  public function readyPageClass($data) {
+    $this->initPageClass($data, 'ready');
   }
 
   /**
