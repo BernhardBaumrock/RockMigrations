@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.28',
+      'version' => '0.0.29',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -176,6 +176,16 @@ class RockMigrations extends WireData implements Module {
   public function fireOnRefresh($module, $method) {
     if(!$this->wire->user->isSuperuser()) return;
     $this->wire->addHookAfter("Modules::refresh", $module, $method);
+  }
+
+  /**
+   * Get Inputfield object from array syntax
+   * @return Inputfield
+   */
+  public function getInputfield($array) {
+    $form = new InputfieldForm();
+    $form->add($array);
+    return $form->children()->first();
   }
 
   /**
@@ -1833,7 +1843,11 @@ class RockMigrations extends WireData implements Module {
     }
 
     // create fields+templates
-    foreach($config->fields as $name=>$data) $this->createField($name, $data['type']);
+    foreach($config->fields as $name=>$data) {
+      // if no type is set this means that only field data was set
+      // for example to update only label or icon of an existing field
+      if(array_key_exists('type', $data)) $this->createField($name, $data['type']);
+    }
     foreach($config->templates as $name=>$data) $this->createTemplate($name, false);
 
     // set field+template data after they have been created
