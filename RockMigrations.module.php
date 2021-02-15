@@ -317,7 +317,7 @@ class RockMigrations extends WireData implements Module {
    * See https://processwire.com/talk/topic/458-superuser-when-bootstrapping/
    * @return void
    */
-  public function su() {
+  public function sudo() {
     $id = $this->wire->config->superUserPageID;
     $this->wire->users->setCurrentUser($this->wire->users->get($id));
   }
