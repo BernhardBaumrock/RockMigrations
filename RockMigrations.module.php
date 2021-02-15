@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.30',
+      'version' => '0.0.31',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -309,6 +309,17 @@ class RockMigrations extends WireData implements Module {
     if(!$module instanceof Module) throw new WireException("This is not a valid Module!");
     $this->module = $module;
     return $this;
+  }
+
+  /**
+   * Change current user to superuser
+   * When bootstrapped sometimes we get permission conflicts
+   * See https://processwire.com/talk/topic/458-superuser-when-bootstrapping/
+   * @return void
+   */
+  public function su() {
+    $id = $this->wire->config->superUserPageID;
+    $this->wire->users->setCurrentUser($this->wire->users->get($id));
   }
 
   /**
