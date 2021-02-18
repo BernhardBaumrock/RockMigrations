@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.31',
+      'version' => '0.0.32',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -1536,15 +1536,18 @@ class RockMigrations extends WireData implements Module {
      *
      * @param string $username
      * @param string $password
+     * @param string $adminTheme
      * @return User
      */
-    public function createUser($username, $password) {
+    public function createUser($username, $password, $adminTheme = null) {
       $user = $this->users->get($username);
       if($user->id) return $user;
 
       $user = $this->wire->users->add($username);
       $user->pass = $password;
+      if($adminTheme) $user->admin_theme = 'AdminThemeUikit';
       $user->save();
+      if($adminTheme) $user->setAndSave('admin_theme', $adminTheme);
       return $user;
     }
 
