@@ -352,7 +352,7 @@ class RockMigrations extends WireData implements Module {
    * $rm->trigger("\Foo\Bar", "init");
    *
    * In your module's ready()
-   * $rm->trigger("\Foo\Bar", "init");
+   * $rm->trigger("\Foo\Bar", "ready");
    *
    * @return void
    */
