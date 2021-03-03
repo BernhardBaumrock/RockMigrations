@@ -775,7 +775,7 @@ class RockMigrations extends WireData implements Module {
       // set data
       if(!$template) {
         // set field data directly
-        foreach($data as $k=>$v) $field->{$k} = $v;
+        foreach($data as $k=>$v) $field->set($k, $v);
       }
       else {
         // make sure the template is set as array of strings
