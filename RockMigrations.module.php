@@ -1643,18 +1643,18 @@ class RockMigrations extends WireData implements Module {
      *
      * @param string $name
      * @param string $url
-     * @return void
+     * @return Module
      */
     public function installModule($name, $url = null) {
       // if the module is already installed we return it
-      $module = $this->modules->get((string)$name);
+      $module = $this->modules->get((string)$name); // this is not good because getting a module will also install it, so if the files are on disk they are installed
       if($module) return $module;
 
       // if an url was provided, download the module
       if($url) $this->downloadModule($url);
 
       // install and return the module
-      return $this->modules->install($name);
+      return $this->modules->install($name, array('force' => true));
     }
 
     /**
