@@ -1597,7 +1597,7 @@ class RockMigrations extends WireData implements Module {
      *
      * @param string|Module $module
      * @param array $data
-     * @return Module
+     * @return void
      */
     public function setModuleConfig($module, $data) {
       $module = $this->modules->get((string)$module);
