@@ -14,7 +14,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.33',
+      'version' => '0.0.34',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => false,
       'singular' => false,
@@ -1258,6 +1258,7 @@ class RockMigrations extends WireData implements Module {
       if(!$name) $name = $this->sanitizer->pageName($title);
 
       // make sure parent is a page and not a selector
+      if(!$parent) throw new WireException("Parent must be set! If you want to migrate the root page use ->setPageData() method.");
       $parent = $this->pages->get((string)$parent);
 
       // get page if it exists
@@ -1347,12 +1348,18 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Set page data via array
+     *
+     * Usage (set title of root page):
+     * $rm->setPageData("/", ['title' => 'foo']);
+     *
      * @param Page $page
      * @param array $data
      * @return void
      */
-    private function setPageData($page, $data) {
+    public function setPageData($page, $data) {
       if(!$data) return;
+      $page = $this->wire->pages->get((string)$page);
+      if(!$page->id) return;
       foreach($data as $k=>$v) $page->setAndSave($k, $v);
     }
 
