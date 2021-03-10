@@ -14,10 +14,10 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.34',
+      'version' => '0.0.35',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
-      'autoload' => false,
-      'singular' => false,
+      'autoload' => true,
+      'singular' => true,
       'icon' => 'bolt',
     ];
   }
@@ -26,9 +26,15 @@ class RockMigrations extends WireData implements Module {
     // load the RockMigration Object Class
     require_once('RockMigration.class.php');
 
+    // set API variable
+    $this->wire('rockmigrations', $this);
+
     // new WireData object to store runtime data of migrations
     // see the demo module how to use this
     $this->data = new WireData();
+
+    // attach hooks
+    $this->loadFilesOnDemand();
   }
 
   /**
@@ -285,6 +291,44 @@ class RockMigrations extends WireData implements Module {
     // trigger $page->init() or $page->ready()
     if(!method_exists($page, $opt->method)) return;
     $page->{$opt->method}();
+  }
+
+  /**
+   * Load files on demand on local installation
+   *
+   * Usage: set $config->filesOnDemand = 'your.hostname.com' in your config file
+   *
+   * Make sure that this setting is only used on your local test config and not
+   * on a live system!
+   *
+   * @return void
+   */
+  public function loadFilesOnDemand() {
+    if(!$host = $this->wire->config->filesOnDemand) return;
+    $hook = "Pagefile::url, Pagefile::filename";
+    $this->addHookAfter($hook, function(HookEvent $event) use($host) {
+      $config = $this->wire->config;
+      $file = $event->return;
+
+      // convert url to disk path
+      if($event->method == 'url') {
+        $file = $config->paths->root.substr($file, strlen($config->urls->root));
+      }
+
+      // load file from remote if it does not exist
+      if(!file_exists($file)) {
+        $host = rtrim($host, "/");
+        $src = "$host/site/assets/files/";
+        $url = str_replace($config->paths->files, $src, $file);
+        $http = $this->wire(new WireHttp()); /** @var WireHttp $http */
+        try {
+          $http->download($url, $file);
+        } catch (\Throwable $th) {
+          // do not throw exception, show error message instead
+          $this->error($th->getMessage());
+        }
+      }
+    });
   }
 
   /**
