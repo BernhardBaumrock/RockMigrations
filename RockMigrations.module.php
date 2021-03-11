@@ -16,8 +16,8 @@ class RockMigrations extends WireData implements Module {
       'title' => 'RockMigrations',
       'version' => '0.0.36',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
-      'autoload' => false,
-      'singular' => false,
+      'autoload' => true,
+      'singular' => true,
       'icon' => 'bolt',
     ];
   }
@@ -26,9 +26,15 @@ class RockMigrations extends WireData implements Module {
     // load the RockMigration Object Class
     require_once('RockMigration.class.php');
 
+    // set API variable
+    $this->wire('rockmigrations', $this);
+
     // new WireData object to store runtime data of migrations
     // see the demo module how to use this
     $this->data = new WireData();
+
+    // attach hooks
+    $this->loadFilesOnDemand();
   }
 
   /**
@@ -285,6 +291,44 @@ class RockMigrations extends WireData implements Module {
     // trigger $page->init() or $page->ready()
     if(!method_exists($page, $opt->method)) return;
     $page->{$opt->method}();
+  }
+
+  /**
+   * Load files on demand on local installation
+   *
+   * Usage: set $config->filesOnDemand = 'your.hostname.com' in your config file
+   *
+   * Make sure that this setting is only used on your local test config and not
+   * on a live system!
+   *
+   * @return void
+   */
+  public function loadFilesOnDemand() {
+    if(!$host = $this->wire->config->filesOnDemand) return;
+    $hook = "Pagefile::url, Pagefile::filename";
+    $this->addHookAfter($hook, function(HookEvent $event) use($host) {
+      $config = $this->wire->config;
+      $file = $event->return;
+
+      // convert url to disk path
+      if($event->method == 'url') {
+        $file = $config->paths->root.substr($file, strlen($config->urls->root));
+      }
+
+      // load file from remote if it does not exist
+      if(!file_exists($file)) {
+        $host = rtrim($host, "/");
+        $src = "$host/site/assets/files/";
+        $url = str_replace($config->paths->files, $src, $file);
+        $http = $this->wire(new WireHttp()); /** @var WireHttp $http */
+        try {
+          $http->download($url, $file);
+        } catch (\Throwable $th) {
+          // do not throw exception, show error message instead
+          $this->error($th->getMessage());
+        }
+      }
+    });
   }
 
   /**
@@ -1235,25 +1279,51 @@ class RockMigrations extends WireData implements Module {
 
   /* ##### pages ##### */
 
-  /**
-   * Create a new Page
-   *
-   * If the page exists it will return the existing page.
-   * All available languages will be set active by default for this page.
-   *
-   * If you need to set a multilang title use
-   * $rm->setFieldLanguageValue($page, "title", ['default'=>'foo', 'german'=>'bar']);
-   *
-   * @param array|string $title
-   * @param string $name
-   * @param Template|string $template
-   * @param Page|string $parent
-   * @param array $status
-   * @param array $data
-   * @return Page
-   */
-  public function createPage($title, $name = null, $template = '', $parent = '', $status = [], $data = []) {
-    if(is_array($title)) return $this->createPageByArray($title);
+    /**
+     * Create a new Page
+     *
+     * If the page exists it will return the existing page.
+     * All available languages will be set active by default for this page.
+     *
+     * If you need to set a multilang title use
+     * $rm->setFieldLanguageValue($page, "title", ['default'=>'foo', 'german'=>'bar']);
+     *
+     * @param array|string $title
+     * @param string $name
+     * @param Template|string $template
+     * @param Page|string $parent
+     * @param array $status
+     * @param array $data
+     * @return Page
+     */
+    public function createPage($title, $name = null, $template = '', $parent = '', $status = [], $data = []) {
+      if(is_array($title)) return $this->createPageByArray($title);
+
+      // create pagename from page title if it is not set
+      if(!$name) $name = $this->sanitizer->pageName($title);
+
+      // make sure parent is a page and not a selector
+      if(!$parent) throw new WireException("Parent must be set! If you want to migrate the root page use ->setPageData() method.");
+      $parent = $this->pages->get((string)$parent);
+
+      // get page if it exists
+      $selector = [
+        'name' => $name,
+        'template' => $template,
+        'parent' => $parent,
+      ];
+      $page = $this->pages->get($selector);
+
+      if($page->id) {
+        // set status
+        $page->status($status);
+        $page->save();
+
+        // set page data
+        $this->setPageData($page, $data);
+
+        return $page;
+      }
 
     // create pagename from page title if it is not set
     if(!$name) $name = $this->sanitizer->pageName($title);
@@ -1346,16 +1416,22 @@ class RockMigrations extends WireData implements Module {
     return $page;
   }
 
-  /**
-   * Set page data via array
-   * @param Page $page
-   * @param array $data
-   * @return void
-   */
-  private function setPageData($page, $data) {
-    if(!$data) return;
-    foreach($data as $k=>$v) $page->setAndSave($k, $v);
-  }
+    /**
+     * Set page data via array
+     *
+     * Usage (set title of root page):
+     * $rm->setPageData("/", ['title' => 'foo']);
+     *
+     * @param Page $page
+     * @param array $data
+     * @return void
+     */
+    public function setPageData($page, $data) {
+      if(!$data) return;
+      $page = $this->wire()->pages->get((string)$page);
+      if(!$page->id) return;
+      foreach($data as $k=>$v) $page->setAndSave($k, $v);
+    }
 
   /**
    * Enable all languages for given page
@@ -1593,18 +1669,21 @@ class RockMigrations extends WireData implements Module {
 
   /* ##### modules ##### */
 
-  /**
-   * Set module config data
-   *
-   * @param string|Module $module
-   * @param array $data
-   * @return Module
-   */
-  public function setModuleConfig($module, $data) {
-    $module = $this->modules->get((string)$module);
-    if(!$module) {
-      if($this->config->debug) throw new WireException("Module not found!");
-      else return;
+    /**
+     * Set module config data
+     *
+     * @param string|Module $module
+     * @param array $data
+     * @return Module|false
+     */
+    public function setModuleConfig($module, $data) {
+      $module = $this->modules->get((string)$module);
+      if(!$module) {
+        if($this->config->debug) throw new WireException("Module not found!");
+        else return false;
+      }
+      $this->modules->saveConfig($module, $data);
+      return $module;
     }
     $this->modules->saveConfig($module, $data);
   }

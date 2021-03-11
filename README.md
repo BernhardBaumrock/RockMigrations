@@ -24,3 +24,17 @@ Some examples of outdated techniques I'm not using any more are in the old readm
 For example deleting a template will also delete all pages having this template. Usually, when using the regular PW API, you'd need to firt check if there are any pages using this template, then delete those pages and finally also delete the corresponding fieldgroup. If the template has the system flag set, you'd also need to remove that flag before deleting the template. That's a lot of things to think of, if all you want to do is to delete a template (and of course all pages having this template). Using RockMigrations it's only one line of code: `$rm->deleteTemplate('yourtemplatename');`
 
 If you are using RockMigrations I'm happy to hear about that: https://processwire.com/talk/topic/21212-rockmigrations-easy-migrations-from-devstaging-to-live-server/
+
+---
+
+## Docs
+
+### Load files on demand from remote to local development
+
+This idea comes from a blog-post of Ryan when he introduced the multiple hooks feature in 3.0.137: https://processwire.com/blog/posts/pw-3.0.137/#on-demand-mirroring-of-remote-web-server-files-to-your-dev-environment
+
+This feature is now part of RockMigrations and setup is as easy as setting a config variable:
+
+```php
+$config->filesOnDemand = "https://www.example.com";
+```
