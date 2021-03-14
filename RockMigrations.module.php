@@ -71,7 +71,7 @@ class RockMigrations extends WireData implements Module {
   public function execute($from, $to, $module = null) {
     $currentModule = $this->module;
     if($module) {
-      $module = $this->modules->get((string)$module);
+      $module = $this->wire()->modules->get((string)$module);
       if(!$module) throw new WireException("Module not found!");
       $this->module = $module;
     }
@@ -143,8 +143,8 @@ class RockMigrations extends WireData implements Module {
     // check if module is set
     if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
 
-    $version = $this->modules->getModuleInfo($this->module)['version'];
-    $versionStr = $this->modules->formatVersion($version);
+    $version = $this->wire()->modules->getModuleInfo($this->module)['version'];
+    $versionStr = $this->wire()->modules->formatVersion($version);
     return $this->executeUpgrade(null, $versionStr);
   }
 
@@ -157,8 +157,8 @@ class RockMigrations extends WireData implements Module {
     // check if module is set
     if(!$this->module) throw new WireException("Please set the module first: setModule(\$yourmodule)");
 
-    $version = $this->modules->getModuleInfo($this->module)['version'];
-    $versionStr = $this->modules->formatVersion($version);
+    $version = $this->wire()->modules->getModuleInfo($this->module)['version'];
+    $versionStr = $this->wire()->modules->formatVersion($version);
     return $this->executeUpgrade($versionStr, null);
   }
 
@@ -180,8 +180,8 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function fireOnRefresh($module, $method) {
-    if(!$this->wire->user->isSuperuser()) return;
-    $this->wire->addHookAfter("Modules::refresh", $module, $method);
+    if(!$this->wire()->user->isSuperuser()) return;
+    $this->wire()->addHookAfter("Modules::refresh", $module, $method);
   }
 
   /**
@@ -304,7 +304,7 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function loadFilesOnDemand() {
-    if(!$host = $this->wire->config->filesOnDemand) return;
+    if(!$host = $this->wire()->config->filesOnDemand) return;
     $hook = "Pagefile::url, Pagefile::filename";
     $this->addHookAfter($hook, function(HookEvent $event) use($host) {
       $config = $this->wire->config;
@@ -320,7 +320,7 @@ class RockMigrations extends WireData implements Module {
         $host = rtrim($host, "/");
         $src = "$host/site/assets/files/";
         $url = str_replace($config->paths->files, $src, $file);
-        $http = $this->wire(new WireHttp()); /** @var WireHttp $http */
+        $http =new WireHttp();
         try {
           $http->download($url, $file);
         } catch (\Throwable $th) {
@@ -349,7 +349,7 @@ class RockMigrations extends WireData implements Module {
    * @return void
    */
   public function setModule($module) {
-    $module = $this->modules->get((string)$module);
+    $module = $this->wire()->modules->get((string)$module);
     if(!$module instanceof Module) throw new WireException("This is not a valid Module!");
     $this->module = $module;
     return $this;
@@ -376,7 +376,7 @@ class RockMigrations extends WireData implements Module {
    */
   public function test($version) {
     $this->down($version);
-    $this->modules->refresh();
+    $this->wire()->modules->refresh();
     $this->up($version);
   }
 
@@ -440,9 +440,9 @@ class RockMigrations extends WireData implements Module {
       $template = $this->getTemplate($template, false);
       if(!$template) return;
 
-      $afterfield = $this->getField($afterfield, false);
-      $beforefield = $this->getField($beforefield, false);
-      $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
+    $afterfield = $this->getField($afterfield, false);
+    $beforefield = $this->getField($beforefield, false);
+    $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
 
       if($afterfield) $fg->insertAfter($field, $afterfield);
       elseif($beforefield) $fg->insertBefore($field, $beforefield);
@@ -508,572 +508,578 @@ class RockMigrations extends WireData implements Module {
         }
       }
 
-      $field = $this->resetMatrixRepeaterFields($field);
-      $field->save();
-      return $field;
-    }
+    $field = $this->resetMatrixRepeaterFields($field);
+    $field->save();
+    return $field;
+  }
 
-    /**
-     * Change type of field
-     * @param Field|string $field
-     * @param string $type
-     * @param bool $keepSettings
-     * @return Field
-     */
-    public function changeFieldtype($field, $type, $keepSettings = true) {
-      $field = $this->getField($field);
+  /**
+   * Change type of field
+   * @param Field|string $field
+   * @param string $type
+   * @param bool $keepSettings
+   * @return Field
+   */
+  public function changeFieldtype($field, $type, $keepSettings = true) {
+    $field = $this->getField($field);
 
-      // if type is already set, return early
-      if($field->type == $type) return $field;
+    // if type is already set, return early
+    if($field->type == $type) return $field;
 
-      // change type and save field
+    // change type and save field
+    $field->type = $type;
+    $this->fields->changeFieldtype($field, $keepSettings);
+    $field->save();
+    return $field;
+  }
+
+  /**
+   * Create a field of the given type
+   *
+   * @param string $name
+   * @param string $type
+   * @param array $options
+   * @return Field
+   */
+  public function createField($name, $typename, $options = null) {
+    $field = $this->getField($name, false);
+    if(!$field) {
+      // setup fieldtype
+      $type = $this->wire()->modules->get($typename);
+      if(!$type) {
+        // shortcut types are possible, eg "text" for "FieldtypeText"
+        $type = "Fieldtype".ucfirst($typename);
+        $type = $this->wire()->modules->get($type);
+        if(!$type) throw new WireException("Invalid Fieldtype");
+      }
+
+      // create the new field
+      if(strtolower($name) !== $name) throw new WireException("Fieldname must be lowercase!");
+      $name = strtolower($name);
+      $field = $this->wire(new Field());
       $field->type = $type;
-      $this->fields->changeFieldtype($field, $keepSettings);
+      $field->name = $name;
       $field->save();
-      return $field;
-    }
 
-    /**
-     * Create a field of the given type
-     *
-     * @param string $name
-     * @param string $type
-     * @param array $options
-     * @return Field
-     */
-    public function createField($name, $typename, $options = null) {
-      $field = $this->getField($name, false);
-      if(!$field) {
-        // setup fieldtype
-        $type = $this->modules->get($typename);
-        if(!$type) {
-          // shortcut types are possible, eg "text" for "FieldtypeText"
-          $type = "Fieldtype".ucfirst($typename);
-          $type = $this->modules->get($type);
-          if(!$type) throw new WireException("Invalid Fieldtype");
-        }
-
-        // create the new field
-        if(strtolower($name) !== $name) throw new WireException("Fieldname must be lowercase!");
-        $name = strtolower($name);
-        $field = $this->wire(new Field());
-        $field->type = $type;
-        $field->name = $name;
-        $field->save();
-
-        // create end field for fieldsets
-        if($field->type instanceof FieldtypeFieldsetOpen) {
-          $field->type->getFieldsetCloseField($field, true);
-        }
-
-        // this will auto-generate the repeater template
-        if($field->type instanceof FieldtypeRepeater) {
-          $field->type->getRepeaterTemplate($field);
-        }
-      }
-
-      // set options
-      if($options) $field = $this->setFieldData($field, $options);
-
-      return $field;
-    }
-
-    /**
-     * Delete the given field
-     *
-     * @param string $name
-     * @return void
-     */
-    public function deleteField($name) {
-      $field = $this->getField($name, false);
-      if(!$field) return;
-
-      // delete _END field for fieldsets first
+      // create end field for fieldsets
       if($field->type instanceof FieldtypeFieldsetOpen) {
-        $closer = $field->type->getFieldsetCloseField($field, false);
-        $this->deleteField($closer);
+        $field->type->getFieldsetCloseField($field, true);
       }
 
-      // make sure we can delete the field by removing all flags
-      $field->flags = Field::flagSystemOverride;
-      $field->flags = 0;
+      // this will auto-generate the repeater template
+      if($field->type instanceof FieldtypeRepeater) {
+        $field->type->getRepeaterTemplate($field);
+      }
+    }
 
-      // remove the field from all fieldgroups
-      foreach($this->fieldgroups as $fieldgroup) {
-        /** @var Fieldgroup $fieldgroup */
-        $fieldgroup->remove($field);
-        $fieldgroup->save();
+    // set options
+    if($options) $field = $this->setFieldData($field, $options);
+
+    return $field;
+  }
+
+  /**
+   * Delete the given field
+   *
+   * @param string $name
+   * @return void
+   */
+  public function deleteField($name) {
+    $field = $this->getField($name, false);
+    if(!$field) return;
+
+    // delete _END field for fieldsets first
+    if($field->type instanceof FieldtypeFieldsetOpen) {
+      $closer = $field->type->getFieldsetCloseField($field, false);
+      $this->deleteField($closer);
+    }
+
+    // make sure we can delete the field by removing all flags
+    $field->flags = Field::flagSystemOverride;
+    $field->flags = 0;
+
+    // remove the field from all fieldgroups
+    foreach($this->fieldgroups as $fieldgroup) {
+      /** @var Fieldgroup $fieldgroup */
+      $fieldgroup->remove($field);
+      $fieldgroup->save();
+    }
+
+    return $this->fields->delete($field);
+  }
+
+  /**
+   * Delete given fields
+   *
+   * @param array $fields
+   * @return void
+   */
+  public function deleteFields($fields) {
+    foreach($fields as $field) $this->deleteField($field);
+  }
+
+  /**
+   * Delete template overrides for the given field
+   *
+   * Example usage:
+   * Delete custom field width for 'myfield' and 'mytemplate':
+   * $rm->deleteFieldTemplateOverrides('myfield', [
+   *   'mytemplate' => ['columnWidth'],
+   * ]);
+   *
+   * @param Field|string $field
+   * @param array $templatesettings
+   * @return void
+   */
+  public function deleteFieldTemplateOverrides($field, $templatesettings) {
+    $field = $this->getField($field);
+
+    // loop data
+    foreach($templatesettings as $tpl=>$val) {
+      // get template
+      $template = $this->wire()->templates->get((string)$tpl);
+      if(!$template) throw new WireException("Template $tpl not found");
+
+      // set field data in template context
+      $fg = $template->fieldgroup;
+      $data = $fg->getFieldContextArray($field->id);
+      foreach($val as $setting) unset($data[$setting]);
+      $fg->setFieldContextArray($field->id, $data);
+      $fg->saveContext();
+    }
+
+  }
+
+  /**
+   * Get field by name
+   *
+   * @param Field|string $name
+   * @return mixed
+   */
+  public function getField($name, $exception = null) {
+    if($name AND !is_string($name) AND !$name instanceof Field) {
+      $func = @debug_backtrace()[1]['function'];
+      throw new WireException("Invalid type set for field in $func");
+    }
+    $field = $this->wire()->fields->get((string)$name);
+
+    // return field when found or no exception
+    if($field) return $field;
+    if($exception === false) return;
+
+    // field was not found, throw exception
+    if(!$exception) $exception = "Field $name not found";
+    throw new WireException($exception);
+  }
+
+  /**
+   * Move one field after another
+   *
+   * @param Field|string $field
+   * @param Field|string $after
+   * @param Template|string $template
+   * @return void
+   */
+  public function moveFieldAfter($field, $after, $template) {
+    $this->addFieldToTemplate($field, $template, $after);
+  }
+
+  /**
+   * Move one field before another
+   *
+   * @param Field|string $field
+   * @param Field|string $before
+   * @param Template|string $template
+   * @return void
+   */
+  public function moveFieldBefore($field, $before, $template) {
+    $this->addFieldToTemplate($field, $template, null, $before);
+  }
+
+  /**
+   * Remove Field from Template
+   *
+   * @param Field|string $field
+   * @param Template|string $template
+   * @param bool $force
+   * @return void
+   */
+  public function removeFieldFromTemplate($field, $template, $force = false) {
+    $field = $this->getField($field, false);
+    if(!$field) return;
+
+    $template = $this->wire()->templates->get((string)$template);
+    if(!$template) return;
+    $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
+
+    // remove global flag to force deletion
+    if($force) $field->flags = 0;
+
+    $fg->remove($field);
+    $fg->save();
+  }
+
+  /**
+   * See method above
+   */
+  public function removeFieldsFromTemplate($fields, $template, $force = false) {
+    foreach($fields as $field) $this->removeFieldFromTemplate($field, $template, $force);
+  }
+
+  /**
+   * Remove matrix item from field
+   * @param Field|string $field
+   * @param string $name
+   * @return Field|null
+   */
+  public function removeMatrixItem($field, $name) {
+    if(!$field = $this->getField($field, false)) return;
+    $info = $field->type->getMatrixTypesInfo($field, ['type'=>$name]);
+    if(!$info) return;
+
+    // reset all properties of that field
+    foreach($field->getArray() as $prop=>$val) {
+      if(strpos($prop, $info['prefix']) !== 0) continue;
+      $field->set($prop, null);
+    }
+
+    $field = $this->resetMatrixRepeaterFields($field);
+    $field->save();
+    return $field;
+  }
+
+  /**
+   * Rename this field
+   * @return Field|false
+   */
+  public function renameField($oldname, $newname) {
+    $field = $this->getField($oldname, false);
+    if(!$field) return false;
+
+    // the new field must not exist
+    $newfield = $this->getField($newname, false);
+    if($newfield) throw new WireException("Field $newname already exists");
+
+    // change the old field
+    $field->name = $newname;
+    $field->save();
+  }
+
+  /**
+   * Set data of a field
+   *
+   * If a template is provided the data is set in template context only.
+   * You can also provide an array of templates.
+   *
+   * Multilang is also possible:
+   * $rm->setFieldData('yourfield', [
+   *   'label' => 'foo', // default language
+   *   'label1021' => 'bar', // other language
+   * ]);
+   *
+   * @param Field|string $field
+   * @param array $data
+   * @param Template|array|string $template
+   * @return void
+   */
+  public function setFieldData($field, $data, $template = null) {
+    $field = $this->getField($field);
+
+    // prepare data array
+    foreach($data as $key=>$val) {
+
+      // this makes it possible to set the template via name
+      if($key === "template_id") {
+        $data[$key] = $this->wire()->templates->get($val)->id;
       }
 
-      return $this->fields->delete($field);
+      // support repeater field array
+      if($key === "repeaterFields") {
+        $fields = $data[$key];
+        foreach($fields as $i=>$_field) {
+          $fields[$i] = $this->wire()->fields->get((string)$_field)->id;
+        }
+        $data[$key] = $fields;
+
+        // add fields to repeater template
+        if($tpl = $this->getRepeaterTemplate($field)) {
+          $this->addFieldsToTemplate($fields, $tpl);
+        }
+      }
+
+      // add support for setting options of a select field
+      // this will remove non-existing options from the field!
+      if($key === "options") {
+        $options = $data[$key];
+        $this->setOptions($field, $options, true);
+      }
+
     }
 
-    /**
-     * Delete given fields
-     *
-     * @param array $fields
-     * @return void
-     */
-    public function deleteFields($fields) {
-      foreach($fields as $field) $this->deleteField($field);
+    // set data
+    if(!$template) {
+      // set field data directly
+      foreach($data as $k=>$v) $field->set($k, $v);
     }
+    else {
+      // make sure the template is set as array of strings
+      if(!is_array($template)) $template = [(string)$template];
 
-    /**
-     * Delete template overrides for the given field
-     *
-     * Example usage:
-     * Delete custom field width for 'myfield' and 'mytemplate':
-     * $rm->deleteFieldTemplateOverrides('myfield', [
-     *   'mytemplate' => ['columnWidth'],
-     * ]);
-     *
-     * @param Field|string $field
-     * @param array $templatesettings
-     * @return void
-     */
-    public function deleteFieldTemplateOverrides($field, $templatesettings) {
-      $field = $this->getField($field);
-
-      // loop data
-      foreach($templatesettings as $tpl=>$val) {
-        // get template
-        $template = $this->templates->get((string)$tpl);
-        if(!$template) throw new WireException("Template $tpl not found");
+      foreach($template as $t) {
+        $tpl = $this->wire()->templates->get((string)$t);
+        if(!$tpl) throw new WireException("Template $t not found");
 
         // set field data in template context
-        $fg = $template->fieldgroup;
-        $data = $fg->getFieldContextArray($field->id);
-        foreach($val as $setting) unset($data[$setting]);
-        $fg->setFieldContextArray($field->id, $data);
+        $fg = $tpl->fieldgroup;
+        $current = $fg->getFieldContextArray($field->id);
+        $fg->setFieldContextArray($field->id, array_merge($current, $data));
         $fg->saveContext();
       }
-
     }
 
-    /**
-     * Get field by name
-     *
-     * @param Field|string $name
-     * @return mixed
-     */
-    public function getField($name, $exception = null) {
-      if($name AND !is_string($name) AND !$name instanceof Field) {
-        $func = @debug_backtrace()[1]['function'];
-        throw new WireException("Invalid type set for field in $func");
-      }
-      $field = $this->fields->get((string)$name);
-
-      // return field when found or no exception
-      if($field) return $field;
-      if($exception === false) return;
-
-      // field was not found, throw exception
-      if(!$exception) $exception = "Field $name not found";
-      throw new WireException($exception);
+    // Make sure Table field actually updates database schema
+    if ($field->type == "FieldtypeTable") {
+      $fieldtypeTable = $field->getFieldtype();
+      $fieldtypeTable->_checkSchema($field, true); // Commit changes
     }
 
-    /**
-     * Move one field after another
-     *
-     * @param Field|string $field
-     * @param Field|string $after
-     * @param Template|string $template
-     * @return void
-     */
-    public function moveFieldAfter($field, $after, $template) {
-      $this->addFieldToTemplate($field, $template, $after);
+    $field->save();
+    return $field;
+  }
+
+  /**
+   * Set the language value of the given field
+   *
+   * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
+   *   'default' => 'Therapie',
+   *   'english' => 'Therapy',
+   * ]);
+   *
+   * @param Page|string $page
+   * @param Field|string $field
+   * @param array $data
+   * @return void
+   */
+  public function setFieldLanguageValue($page, $field, $data) {
+    $page = $this->pages->get((string)$page);
+    if(!$page->id) throw new WireException("Page not found!");
+    $page->of(false);
+    $field = $this->getField($field);
+
+    // set field value for all provided languages
+    foreach($data as $lang=>$val) {
+      $lang = $this->languages->get($lang);
+      if(!$lang->id) continue;
+      $page->{$field}->setLanguageValue($lang, $val);
     }
+    $page->save();
+  }
 
-    /**
-     * Move one field before another
-     *
-     * @param Field|string $field
-     * @param Field|string $before
-     * @param Template|string $template
-     * @return void
-     */
-    public function moveFieldBefore($field, $before, $template) {
-      $this->addFieldToTemplate($field, $template, null, $before);
+  /**
+   * Set options of an options field via string
+   *
+   * Update: Better use $rm->setOptions($field, $options);
+   *
+   * $rm->setFieldOptionsString("yourfield", "
+   *   1=foo|My Foo Option
+   *   2=bar|My Bar Option
+   * ");
+   *
+   * @param Field|string $name
+   * @param string $options
+   * @return void
+   */
+  public function setFieldOptionsString($name, $options, $removeOthers = false) {
+    $field = $this->getField($name);
+
+    $manager = $this->wire(new SelectableOptionManager());
+
+    // now set the options
+    $manager->setOptionsString($field, $options, $removeOthers);
+    $field->save();
+
+    return $field;
+  }
+
+  /**
+   * Set field order at given template
+   *
+   * The first field is always the reference for all other fields.
+   *
+   * @param array $fields
+   * @param Template|string $name
+   * @return void
+   */
+  public function setFieldOrder($fields, $name) {
+    $template = $this->wire()->templates->get((string)$name);
+    if(!$template) throw new WireException("Template $name not found");
+
+    // make sure that all fields exist
+    foreach($fields as $i=>$field) {
+      if(!$this->wire()->fields->get($field)) unset($fields[$i]);
     }
+    $fields = array_values($fields); // reset indices
 
-    /**
-     * Remove Field from Template
-     *
-     * @param Field|string $field
-     * @param Template|string $template
-     * @param bool $force
-     * @return void
-     */
-    public function removeFieldFromTemplate($field, $template, $force = false) {
-      $field = $this->getField($field, false);
-      if(!$field) return;
-
-      $template = $this->templates->get((string)$template);
-      if(!$template) return;
-      $fg = $template->fieldgroup; /** @var Fieldgroup $fg */
-
-      // remove global flag to force deletion
-      if($force) $field->flags = 0;
-
-      $fg->remove($field);
-      $fg->save();
+    foreach($fields as $i => $field) {
+      if(!$i) continue;
+      $this->addFieldToTemplate($field, $template, $fields[$i-1]);
     }
+  }
 
-    /**
-     * See method above
-     */
-    public function removeFieldsFromTemplate($fields, $template, $force = false) {
-      foreach($fields as $field) $this->removeFieldFromTemplate($field, $template, $force);
-    }
-
-    /**
-     * Remove matrix item from field
-     * @param Field|string $field
-     * @param string $name
-     * @return Field|null
-     */
-    public function removeMatrixItem($field, $name) {
-      if(!$field = $this->getField($field, false)) return;
-      $info = $field->type->getMatrixTypesInfo($field, ['type'=>$name]);
-      if(!$info) return;
-
-      // reset all properties of that field
-      foreach($field->getArray() as $prop=>$val) {
-        if(strpos($prop, $info['prefix']) !== 0) continue;
-        $field->set($prop, null);
-      }
-
-      $field = $this->resetMatrixRepeaterFields($field);
-      $field->save();
-      return $field;
-    }
-
-    /**
-     * Rename this field
-     * @return Field|false
-     */
-    public function renameField($oldname, $newname) {
-      $field = $this->getField($oldname, false);
-      if(!$field) return false;
-
-      // the new field must not exist
-      $newfield = $this->getField($newname, false);
-      if($newfield) throw new WireException("Field $newname already exists");
-
-      // change the old field
-      $field->name = $newname;
-      $field->save();
-    }
-
-    /**
-     * Set data of a field
-     *
-     * If a template is provided the data is set in template context only.
-     * You can also provide an array of templates.
-     *
-     * Multilang is also possible:
-     * $rm->setFieldData('yourfield', [
-     *   'label' => 'foo', // default language
-     *   'label1021' => 'bar', // other language
-     * ]);
-     *
-     * @param Field|string $field
-     * @param array $data
-     * @param Template|array|string $template
-     * @return void
-     */
-    public function setFieldData($field, $data, $template = null) {
-      $field = $this->getField($field);
-
-      // prepare data array
-      foreach($data as $key=>$val) {
-
-        // this makes it possible to set the template via name
-        if($key === "template_id") {
-          $data[$key] = $this->templates->get($val)->id;
-        }
-
-        // support repeater field array
-        if($key === "repeaterFields") {
-          $fields = $data[$key];
-          foreach($fields as $i=>$_field) {
-            $fields[$i] = $this->fields->get((string)$_field)->id;
-          }
-          $data[$key] = $fields;
-
-          // add fields to repeater template
-          if($tpl = $this->getRepeaterTemplate($field)) {
-            $this->addFieldsToTemplate($fields, $tpl);
-          }
-        }
-
-        // add support for setting options of a select field
-        // this will remove non-existing options from the field!
-        if($key === "options") {
-          $options = $data[$key];
-          $this->setOptions($field, $options, true);
-        }
-
-      }
-
-      // set data
-      if(!$template) {
-        // set field data directly
-        foreach($data as $k=>$v) $field->set($k, $v);
-      }
-      else {
-        // make sure the template is set as array of strings
-        if(!is_array($template)) $template = [(string)$template];
-
-        foreach($template as $t) {
-          $tpl = $this->templates->get((string)$t);
-          if(!$tpl) throw new WireException("Template $t not found");
-
-          // set field data in template context
-          $fg = $tpl->fieldgroup;
-          $current = $fg->getFieldContextArray($field->id);
-          $fg->setFieldContextArray($field->id, array_merge($current, $data));
-          $fg->saveContext();
-        }
-      }
-
-      // Make sure Table field actually updates database schema
-      if ($field->type == "FieldtypeTable") {
-        $fieldtypeTable = $field->getFieldtype();
-        $fieldtypeTable->_checkSchema($field, true); // Commit changes
-      }
-
-      $field->save();
-      return $field;
-    }
-
-    /**
-     * Set the language value of the given field
-     *
-     * $rm->setFieldLanguageValue("/admin/therapy", 'title', [
-     *   'default' => 'Therapie',
-     *   'english' => 'Therapy',
-     * ]);
-     *
-     * @param Page|string $page
-     * @param Field|string $field
-     * @param array $data
-     * @return void
-     */
-    public function setFieldLanguageValue($page, $field, $data) {
-      $page = $this->pages->get((string)$page);
-      if(!$page->id) throw new WireException("Page not found!");
-      $page->of(false);
-      $field = $this->getField($field);
-
-      // set field value for all provided languages
-      foreach($data as $lang=>$val) {
-        $lang = $this->languages->get($lang);
-        if(!$lang->id) continue;
-        $page->{$field}->setLanguageValue($lang, $val);
-      }
-      $page->save();
-    }
-
-    /**
-     * Set options of an options field via string
-     *
-     * Update: Better use $rm->setOptions($field, $options);
-     *
-     * $rm->setFieldOptionsString("yourfield", "
-     *   1=foo|My Foo Option
-     *   2=bar|My Bar Option
-     * ");
-     *
-     * @param Field|string $name
-     * @param string $options
-     * @return void
-     */
-    public function setFieldOptionsString($name, $options, $removeOthers = false) {
-      $field = $this->getField($name);
-
-      $manager = $this->wire(new SelectableOptionManager());
-
-      // now set the options
-      $manager->setOptionsString($field, $options, $removeOthers);
-      $field->save();
-
-      return $field;
-    }
-
-    /**
-     * Set field order at given template
-     *
-     * The first field is always the reference for all other fields.
-     *
-     * @param array $fields
-     * @param Template|string $name
-     * @return void
-     */
-    public function setFieldOrder($fields, $name) {
-      $template = $this->templates->get((string)$name);
-      if(!$template) throw new WireException("Template $name not found");
-
-      // make sure that all fields exist
-      foreach($fields as $i=>$field) {
-        if(!$this->fields->get($field)) unset($fields[$i]);
-      }
-      $fields = array_values($fields); // reset indices
-
-      foreach($fields as $i => $field) {
-        if(!$i) continue;
-        $this->addFieldToTemplate($field, $template, $fields[$i-1]);
+  /**
+   * Set matrix item data
+   * @param Field|string $field
+   * @param string $name
+   * @param array $data
+   * @return Field|null
+   */
+  public function setMatrixItemData($field, $name, $data) {
+    if(!$field = $this->getField($field, false)) return;
+    $info = $field->type->getMatrixTypesInfo($field, ['type'=>$name]);
+    if(!$info) return;
+    foreach($this->getMatrixDataArray($data) as $key => $val) {
+      // eg set matrix1_label = ...
+      $field->set($info['prefix'].$key, $val);
+      if($key === "fields") {
+        $tpl = $this->getRepeaterTemplate($field);
+        $this->addFieldsToTemplate($val, $tpl);
       }
     }
 
-    /**
-     * Set matrix item data
-     * @param Field|string $field
-     * @param string $name
-     * @param array $data
-     * @return Field|null
-     */
-    public function setMatrixItemData($field, $name, $data) {
-      if(!$field = $this->getField($field, false)) return;
-      $info = $field->type->getMatrixTypesInfo($field, ['type'=>$name]);
-      if(!$info) return;
-      foreach($this->getMatrixDataArray($data) as $key => $val) {
-        // eg set matrix1_label = ...
-        $field->set($info['prefix'].$key, $val);
-        if($key === "fields") {
-          $tpl = $this->getRepeaterTemplate($field);
-          $this->addFieldsToTemplate($val, $tpl);
-        }
-      }
+    $field = $this->resetMatrixRepeaterFields($field);
+    $field->save();
+    return $field;
+  }
 
-      $field = $this->resetMatrixRepeaterFields($field);
-      $field->save();
-      return $field;
+  /**
+   * Set options of an options field as array
+   * @param Field|string $field
+   * @param array $options
+   * @param bool $allowDelete
+   * @return Field|null
+   */
+  public function setOptions($field, $options, $allowDelete = false) {
+    $string = "";
+    foreach($options as $k=>$v) $string.="\n$k=$v";
+    return $this->setFieldOptionsString($field, $string, $allowDelete);
+  }
+
+  /**
+   * Set items of a RepeaterMatrix field
+   *
+   * If wipe is set to TRUE it will wipe all existing matrix types before
+   * setting the new ones. Otherwise it will override settings of old types
+   * and add the type to the end of the matrix if it does not exist yet.
+   *
+   * CAUTION: wipe = true will also delete all field data stored in the
+   * repeater matrix fields!!
+   *
+   * Usage:
+   *  $rm->setMatrixItems('your_matrix_field', [
+   *    'foo' => [
+   *      'label' => 'foo label',
+   *      'fields' => ['field1', 'field2'],
+   *    ],
+   *    'bar' => [
+   *      'label' => 'bar label',
+   *      'fields' => ['field1', 'field3'],
+   *    ],
+   *  ], true);
+   *
+   * @param Field|string $field
+   * @param array $items
+   * @param bool $wipe
+   * @return Field|null
+   */
+  public function setMatrixItems($field, $items, $wipe = false) {
+    if(!$this->wire()->modules->isInstalled('FieldtypeRepeaterMatrix')) return;
+    if(!$field = $this->getField($field, false)) return;
+
+    // get all matrix types of that field
+    $types = $field->type->getMatrixTypes();
+
+    // if wipe is turned on we remove all existing items
+    // this is great when you want to control the matrix solely by migrations
+    if($wipe) {
+      foreach($types as $type => $v) $this->removeMatrixItem($field, $type);
     }
 
-    /**
-     * Set options of an options field as array
-     * @param Field|string $field
-     * @param array $options
-     * @param bool $allowDelete
-     * @return Field|null
-     */
-    public function setOptions($field, $options, $allowDelete = false) {
-      $string = "";
-      foreach($options as $k=>$v) $string.="\n$k=$v";
-      return $this->setFieldOptionsString($field, $string, $allowDelete);
+    // loop all provided items
+    foreach($items as $name => $data) {
+      $type = $field->type->getMatrixTypeByName($name);
+      if(!$type) $field = $this->addMatrixItem($field, $name, $data);
+      else $this->setMatrixItemData($field, $name, $data);
     }
 
-    /**
-     * Set items of a RepeaterMatrix field
-     *
-     * If wipe is set to TRUE it will wipe all existing matrix types before
-     * setting the new ones. Otherwise it will override settings of old types
-     * and add the type to the end of the matrix if it does not exist yet.
-     *
-     * CAUTION: wipe = true will also delete all field data stored in the
-     * repeater matrix fields!!
-     *
-     * Usage:
-     *  $rm->setMatrixItems('your_matrix_field', [
-     *    'foo' => [
-     *      'label' => 'foo label',
-     *      'fields' => ['field1', 'field2'],
-     *    ],
-     *    'bar' => [
-     *      'label' => 'bar label',
-     *      'fields' => ['field1', 'field3'],
-     *    ],
-     *  ], true);
-     *
-     * @param Field|string $field
-     * @param array $items
-     * @param bool $wipe
-     * @return Field|null
-     */
-    public function setMatrixItems($field, $items, $wipe = false) {
-      if(!$this->modules->isInstalled('FieldtypeRepeaterMatrix')) return;
-      if(!$field = $this->getField($field, false)) return;
-
-      // get all matrix types of that field
-      $types = $field->type->getMatrixTypes();
-
-      // if wipe is turned on we remove all existing items
-      // this is great when you want to control the matrix solely by migrations
-      if($wipe) {
-        foreach($types as $type => $v) $this->removeMatrixItem($field, $type);
-      }
-
-      // loop all provided items
-      foreach($items as $name => $data) {
-        $type = $field->type->getMatrixTypeByName($name);
-        if(!$type) $field = $this->addMatrixItem($field, $name, $data);
-        else $this->setMatrixItemData($field, $name, $data);
-      }
-
-      return $field;
-    }
+    return $field;
+  }
 
   /* ##### templates ##### */
 
-    /**
-     * Allow given child for given parent
-     */
-    public function addAllowedChild($child, $parent) {
-      $child = $this->getTemplate($child);
-      $parent = $this->getTemplate($parent);
-      $childs = $parent->childTemplates;
-      $childs[] = $child;
-      $this->setTemplateData($parent, ['childTemplates' => $childs]);
+  /**
+   * Allow given child for given parent
+   */
+  public function addAllowedChild($child, $parent) {
+    $child = $this->getTemplate($child);
+    $parent = $this->getTemplate($parent);
+    $childs = $parent->childTemplates;
+    $childs[] = $child;
+    $this->setTemplateData($parent, ['childTemplates' => $childs]);
+  }
+
+  /**
+   * Add role to template
+   *
+   * Usage:
+   * $rm->addRoleToTemplate(["view", "edit"], "myrole", "mytemplate");
+   *
+   * @param mixed $permission
+   * @param mixed $role
+   * @param mixed $tpl
+   * @return void
+   */
+  public function addRoleToTemplate($permission, $role, $tpl) {
+    if(is_array($permission)) {
+      foreach($permission as $p) $this->addRoleToTemplate($p, $role, $tpl);
+      return;
     }
 
-    /**
-     * Add role to template
-     *
-     * Usage:
-     * $rm->addRoleToTemplate(["view", "edit"], "myrole", "mytemplate");
-     *
-     * @param mixed $permission
-     * @param mixed $role
-     * @param mixed $tpl
-     * @return void
-     */
-    public function addRoleToTemplate($permission, $role, $tpl) {
-      if(is_array($permission)) {
-        foreach($permission as $p) $this->addRoleToTemplate($p, $role, $tpl);
-        return;
-      }
+    $tpl = $this->wire->templates->get((string)$tpl);
+    $role = $this->wire->roles->get((string)$role);
 
-      $tpl = $this->wire->templates->get((string)$tpl);
-      $role = $this->wire->roles->get((string)$role);
+    if(!$tpl) return;
+    if(!$role) return;
 
-      if(!$tpl) return;
-      if(!$role) return;
+    $tpl->useRoles = 1;
 
-      $tpl->useRoles = 1;
+    $prop = "roles";
+    if($permission == "edit") $prop = "editRoles";
+    if($permission == "add") $prop = "addRoles";
+    if($permission == "create") $prop = "createRoles";
 
-      $prop = "roles";
-      if($permission == "edit") $prop = "editRoles";
-      if($permission == "add") $prop = "addRoles";
-      if($permission == "create") $prop = "createRoles";
+    $arr = $this->getRoleArray($tpl->$prop);
+    $newArray = array_merge($arr, [(int)(string)$role]);
+    $tpl->$prop = $newArray;
+    $tpl->save();
+  }
 
-      $arr = $this->getRoleArray($tpl->$prop);
-      $newArray = array_merge($arr, [(int)(string)$role]);
-      $tpl->$prop = $newArray;
-      $tpl->save();
+  /**
+   * Create a new ProcessWire Template
+   *
+   * @param string $name
+   * @param bool $addTitlefield
+   * @return Template
+   */
+  public function createTemplate(string $name, $addTitlefield = true) {
+    $t = $this->wire()->templates->get((string)$name);
+    if($t) return $t;
+
+    if ($this->wire()->config->version('3.0.170')){
+//        bd('version >=3.0.170, using template->add');
+      $t = $this->wire()->templates->add((string) $name);
     }
-
-    /**
-     * Create a new ProcessWire Template
-     *
-     * @param string $name
-     * @param bool $addTitlefield
-     * @return void
-     */
-    public function createTemplate($name, $addTitlefield = true) {
-      $t = $this->templates->get((string)$name);
-      if($t) return $t;
-
+    else{
+      // @TODO remove deprecated code
       // create new fieldgroup
       $fg = $this->wire(new Fieldgroup());
       $fg->name = $name;
@@ -1084,766 +1090,768 @@ class RockMigrations extends WireData implements Module {
       $t->name = $name;
       $t->fieldgroup = $fg;
       $t->save();
-
-      // add title field to this template
-      if($addTitlefield) $this->addFieldToTemplate('title', $t);
-
-      return $t;
     }
 
-    /**
-     * Delete a ProcessWire Template
-     *
-     * @param string $name
-     * @return void
-     */
-    public function deleteTemplate($name) {
-      $template = $this->templates->get($name);
-      if(!$template OR !$template->id) return;
+    // add title field to this template
+    if($addTitlefield) $this->addFieldToTemplate('title', $t);
 
-      // remove all pages having this template
-      foreach($this->pages->find("template=$template, include=all") as $p) {
-        $this->deletePage($p);
+    return $t;
+  }
+
+  /**
+   * Delete a ProcessWire Template
+   *
+   * @param string $name
+   * @return void
+   */
+  public function deleteTemplate($name) {
+    $template = $this->wire()->templates->get($name);
+    if(!$template OR !$template->id) return;
+
+    // remove all pages having this template
+    foreach($this->pages->find("template=$template, include=all") as $p) {
+      $this->deletePage($p);
+    }
+
+    // make sure we can delete the template by removing all flags
+    $template->flags = Template::flagSystemOverride;
+    $template->flags = 0;
+
+    // delete the template
+    $this->templates->delete($template);
+
+    // delete the fieldgroup
+    $fg = $this->fieldgroups->get($name);
+    if($fg) $this->fieldgroups->delete($fg);
+  }
+
+  /**
+   * Get template by name
+   *
+   * @param Template|string $name
+   * @return mixed
+   */
+  public function getTemplate($name, $exception = null) {
+    if($name instanceof Template) return $name;
+    if(!is_string($name)) throw new WireException("Template not found");
+    return $this->wire()->templates->get((string)$name);
+  }
+
+  /**
+   * Get template of given repeater field
+   * @param Field|string $field
+   * @return Template
+   */
+  public function getRepeaterTemplate($field) {
+    $field = $this->getField($field);
+    return $this->wire()->templates->get($field->template_id);
+  }
+
+  /**
+   * This renames a template and corresponding fieldgroup
+   * @return Template
+   */
+  public function renameTemplate($oldname, $newname) {
+    $t = $this->wire()->templates->get((string)$oldname);
+
+    // if the new template already exists we return it
+    // this is important if you run one migration multiple times
+    // $bar = $rm->renameTemplate('foo', 'bar');
+    // $rm->setTemplateData($bar, [...]);
+    $newTemplate = $this->wire()->templates->get((string)$newname);
+    if($newTemplate) return $newTemplate;
+
+    $t->name = $newname;
+    $t->save();
+
+    $fg = $t->fieldgroup;
+    $fg->name = $newname;
+    $fg->save();
+
+    return $t;
+  }
+
+  /**
+   * Set template icon
+   */
+  public function setIcon($template, $icon) {
+    $template = $this->wire()->templates->get((string)$template);
+    $template->setIcon($icon);
+    $template->save();
+    return $template;
+  }
+
+  /**
+   * Set parent child family settings for two templates
+   */
+  public function setParentChild($parent, $child) {
+    $this->setTemplateData($child, [
+      'noChildren' => 1, // may not have children
+      'noParents' => '', // can be used for new pages
+      'parentTemplates' => [(string)$parent],
+    ]);
+    $this->setTemplateData($parent, [
+      'noChildren' => 0, // may have children
+      'noParents' => -1, // only one page
+      'childTemplates' => [(string)$child],
+      'childNameFormat' => 'title',
+    ]);
+  }
+
+  /**
+   * Set data of a template
+   *
+   * TODO: Set data in template context.
+   * TODO: Wording is inconsistant! Set = Update, because it only sets
+   * provided key value pairs and not the whole array
+   *
+   * Multilang is also possible:
+   * $rm->setTemplateData('yourtemplate', [
+   *   'label' => 'foo', // default language
+   *   'label1021' => 'bar', // other language
+   * ]);
+   *
+   * @param Template|string $template
+   * @param array $data
+   * @return void
+   */
+  public function setTemplateData($template, $data) {
+    $template = $this->wire()->templates->get((string)$template);
+    if(!$template) throw new WireException("template not found!");
+    foreach($data as $k=>$v) {
+      if($k === 'fields' AND is_array($v)) {
+        // set fields of template but dont remove non-mentioned fields
+        $this->setTemplateFields($template, $v, false);
+        continue;
       }
-
-      // make sure we can delete the template by removing all flags
-      $template->flags = Template::flagSystemOverride;
-      $template->flags = 0;
-
-      // delete the template
-      $this->templates->delete($template);
-
-      // delete the fieldgroup
-      $fg = $this->fieldgroups->get($name);
-      if($fg) $this->fieldgroups->delete($fg);
-    }
-
-    /**
-     * Get template by name
-     *
-     * @param Template|string $name
-     * @return mixed
-     */
-    public function getTemplate($name, $exception = null) {
-      $template = $this->templates->get((string)$name);
-
-      // return template when found or no exception
-      if($template) return $template;
-      if($exception === false) return;
-
-      // template was not found, throw exception
-      if(!$exception) $exception = "Template not found";
-      throw new WireException($exception);
-    }
-
-    /**
-     * Get template of given repeater field
-     * @param Field|string $field
-     * @return Template
-     */
-    public function getRepeaterTemplate($field) {
-      $field = $this->getField($field);
-      return $this->templates->get($field->template_id);
-    }
-
-    /**
-     * This renames a template and corresponding fieldgroup
-     * @return Template
-     */
-    public function renameTemplate($oldname, $newname) {
-      $t = $this->templates->get((string)$oldname);
-
-      // if the new template already exists we return it
-      // this is important if you run one migration multiple times
-      // $bar = $rm->renameTemplate('foo', 'bar');
-      // $rm->setTemplateData($bar, [...]);
-      $newTemplate = $this->templates->get((string)$newname);
-      if($newTemplate) return $newTemplate;
-
-      $t->name = $newname;
-      $t->save();
-
-      $fg = $t->fieldgroup;
-      $fg->name = $newname;
-      $fg->save();
-
-      return $t;
-    }
-
-    /**
-     * Set template icon
-     */
-    public function setIcon($template, $icon) {
-      $template = $this->templates->get((string)$template);
-      $template->setIcon($icon);
-      $template->save();
-      return $template;
-    }
-
-    /**
-     * Set parent child family settings for two templates
-     */
-    public function setParentChild($parent, $child) {
-      $this->setTemplateData($child, [
-        'noChildren' => 1, // may not have children
-        'noParents' => '', // can be used for new pages
-        'parentTemplates' => [(string)$parent],
-      ]);
-      $this->setTemplateData($parent, [
-        'noChildren' => 0, // may have children
-        'noParents' => -1, // only one page
-        'childTemplates' => [(string)$child],
-        'childNameFormat' => 'title',
-      ]);
-    }
-
-    /**
-     * Set data of a template
-     *
-     * TODO: Set data in template context.
-     * TODO: Wording is inconsistant! Set = Update, because it only sets
-     * provided key value pairs and not the whole array
-     *
-     * Multilang is also possible:
-     * $rm->setTemplateData('yourtemplate', [
-     *   'label' => 'foo', // default language
-     *   'label1021' => 'bar', // other language
-     * ]);
-     *
-     * @param Template|string $template
-     * @param array $data
-     * @return void
-     */
-    public function setTemplateData($template, $data) {
-      $template = $this->templates->get((string)$template);
-      if(!$template) throw new WireException("template not found!");
-      foreach($data as $k=>$v) {
-        if($k === 'fields' AND is_array($v)) {
-          // set fields of template but dont remove non-mentioned fields
-          $this->setTemplateFields($template, $v, false);
-          continue;
-        }
-        if($k === 'fields-' AND is_array($v)) {
-          // set fields of this template and remove all non-listed
-          $this->setTemplateFields($template, $v, true);
-          continue;
-        }
-        $template->{$k} = $v;
+      if($k === 'fields-' AND is_array($v)) {
+        // set fields of this template and remove all non-listed
+        $this->setTemplateFields($template, $v, true);
+        continue;
       }
-      $template->save();
-      return $template;
+      $template->{$k} = $v;
+    }
+    $template->save();
+    return $template;
+  }
+
+  /**
+   * Set fields of template via array
+   * @return void
+   */
+  public function setTemplateFields($template, $fields, $removeOthers = false) {
+    $template = $this->wire()->templates->get((string)$template);
+    $last = null;
+    $names = [];
+    foreach($fields as $name=>$data) {
+      if(is_int($name) AND is_int($data)) {
+        $name = $this->getField((string)$data)->name;
+        $data = [];
+      }
+      if(is_int($name)) {
+        $name = $data;
+        $data = [];
+      }
+      $names[] = $name;
+      $this->addFieldToTemplate($name, $template, $last);
+      $this->setFieldData($name, $data, $template);
+      $last = $name;
     }
 
-    /**
-     * Set fields of template via array
-     * @return void
-     */
-    public function setTemplateFields($template, $fields, $removeOthers = false) {
-      $template = $this->templates->get((string)$template);
-      $last = null;
-      $names = [];
-      foreach($fields as $name=>$data) {
-        if(is_int($name) AND is_int($data)) {
-          $name = $this->getField((string)$data)->name;
-          $data = [];
-        }
-        if(is_int($name)) {
-          $name = $data;
-          $data = [];
-        }
-        $names[] = $name;
-        $this->addFieldToTemplate($name, $template, $last);
-        $this->setFieldData($name, $data, $template);
-        $last = $name;
-      }
-
-      if(!$removeOthers) return;
-      foreach($template->fields as $field) {
-        $name = (string)$field;
-        if(!in_array($name, $names)) {
-          // remove this field from the template
-          // global fields like the title field are also removed
-          $this->removeFieldFromTemplate($name, $template, true);
-        }
+    if(!$removeOthers) return;
+    foreach($template->fields as $field) {
+      $name = (string)$field;
+      if(!in_array($name, $names)) {
+        // remove this field from the template
+        // global fields like the title field are also removed
+        $this->removeFieldFromTemplate($name, $template, true);
       }
     }
+  }
 
-    /**
-     * Set data for multiple templates
-     * @return void
-     */
-    public function setTemplatesData($templates, $data) {
-      foreach($templates as $t) $this->setTemplateData($t, $data);
-    }
+  /**
+   * Set data for multiple templates
+   * @return void
+   */
+  public function setTemplatesData($templates, $data) {
+    foreach($templates as $t) $this->setTemplateData($t, $data);
+  }
 
   /* ##### pages ##### */
 
-    /**
-     * Create a new Page
-     *
-     * If the page exists it will return the existing page.
-     * All available languages will be set active by default for this page.
-     *
-     * If you need to set a multilang title use
-     * $rm->setFieldLanguageValue($page, "title", ['default'=>'foo', 'german'=>'bar']);
-     *
-     * @param array|string $title
-     * @param string $name
-     * @param Template|string $template
-     * @param Page|string $parent
-     * @param array $status
-     * @param array $data
-     * @return Page
-     */
-    public function createPage($title, $name = null, $template = '', $parent = '', $status = [], $data = []) {
-      if(is_array($title)) return $this->createPageByArray($title);
+  /**
+   * Create a new Page
+   *
+   * If the page exists it will return the existing page.
+   * All available languages will be set active by default for this page.
+   *
+   * If you need to set a multilang title use
+   * $rm->setFieldLanguageValue($page, "title", ['default'=>'foo', 'german'=>'bar']);
+   *
+   * @param array|string $title
+   * @param string $name
+   * @param Template|string $template
+   * @param Page|string $parent
+   * @param array $status
+   * @param array $data
+   * @return Page
+   */
+  public function createPage($title, $name = null, $template = '', $parent = '', $status = [], $data = []) {
+    if(is_array($title)) return $this->createPageByArray($title);
 
-      // create pagename from page title if it is not set
-      if(!$name) $name = $this->sanitizer->pageName($title);
+    // create pagename from page title if it is not set
+    if(!$name) $name = $this->sanitizer->pageName($title);
 
-      // make sure parent is a page and not a selector
-      if(!$parent) throw new WireException("Parent must be set! If you want to migrate the root page use ->setPageData() method.");
-      $parent = $this->pages->get((string)$parent);
+    // make sure parent is a page and not a selector
+    if(!$parent) throw new WireException("Parent must be set! If you want to migrate the root page use ->setPageData() method.");
+    $parent = $this->pages->get((string)$parent);
 
-      // get page if it exists
-      $selector = [
-        'name' => $name,
-        'template' => $template,
-        'parent' => $parent,
-      ];
-      $page = $this->pages->get($selector);
+    // get page if it exists
+    $selector = [
+      'name' => $name,
+      'template' => $template,
+      'parent' => $parent,
+    ];
+    $page = $this->pages->get($selector);
 
-      if($page->id) {
-        // set status
-        $page->status($status);
-        $page->save();
-
-        // set page data
-        $this->setPageData($page, $data);
-
-        return $page;
-      }
-
-      // create a new page
-      $p = $this->wire(new Page());
-      $p->template = $template;
-      $p->title = $title;
-      $p->name = $name;
-      $p->parent = $parent;
-      $p->status($status);
-      $p->save();
+    if($page->id) {
+      // set status
+      $page->status($status);
+      $page->save();
 
       // set page data
-      $this->setPageData($p, $data);
-
-      // enable all languages for this page
-      $this->enableAllLanguagesForPage($p);
-
-      return $p;
-    }
-
-    /**
-     * Create page by array
-     *
-     * This is more future proof and has more options than the old version,
-     * eg you can provide a callback:
-     * $rm->createPage([
-     *   'title' => 'foo',
-     *   'onCreate' => function($page) { ... },
-     * ]);
-     *
-     * @return Page
-     */
-    public function createPageByArray($array) {
-      $data = $this->wire(new WireData()); /** @var WireData $data */
-      $data->setArray($array);
-
-      // check for necessary properties
-      $parent = $this->pages->get((string)$data->parent);
-      if(!$parent->id) throw new WireException("Invalid parent");
-      $template = $this->templates->get((string)$data->template);
-      if(!$template instanceof Template OR !$template->id) throw new WireException("Invalid template");
-
-      // check name
-      $name = $data->name;
-      if(!$name) {
-        if(!$data->title) throw new WireException("If no name is set you need to set a title!");
-        $name = $this->sanitizer->pageName($data->title);
-      }
-
-      // set flag if page was created or not
-      $created = !$this->pages->get("parent=$parent,name=$name")->id;
-
-      // create page
-      $page = $this->createPage(
-        $data->title,
-        $name,
-        $template,
-        $parent,
-        $data->status,
-        $data->pageData
-      );
-
-      // if page was created we fire the onCreate callback
-      if($created AND is_callable($data->onCreate)) $data->onCreate->__invoke($page);
+      $this->setPageData($page, $data);
 
       return $page;
     }
 
-    /**
-     * Set page data via array
-     *
-     * Usage (set title of root page):
-     * $rm->setPageData("/", ['title' => 'foo']);
-     *
-     * @param Page $page
-     * @param array $data
-     * @return void
-     */
-    public function setPageData($page, $data) {
-      if(!$data) return;
-      $page = $this->wire->pages->get((string)$page);
-      if(!$page->id) return;
-      foreach($data as $k=>$v) $page->setAndSave($k, $v);
+    // create a new page
+    $p = $this->wire(new Page());
+    $p->template = $template;
+    $p->title = $title;
+    $p->name = $name;
+    $p->parent = $parent;
+    $p->status($status);
+    $p->save();
+
+    // set page data
+    $this->setPageData($p, $data);
+
+    // enable all languages for this page
+    $this->enableAllLanguagesForPage($p);
+
+    return $p;
+  }
+
+  /**
+   * Create page by array
+   *
+   * This is more future proof and has more options than the old version,
+   * eg you can provide a callback:
+   * $rm->createPage([
+   *   'title' => 'foo',
+   *   'onCreate' => function($page) { ... },
+   * ]);
+   *
+   * @return Page
+   */
+  public function createPageByArray($array) {
+    $data = $this->wire(new WireData()); /** @var WireData $data */
+    $data->setArray($array);
+
+    // check for necessary properties
+    $parent = $this->pages->get((string)$data->parent);
+    if(!$parent->id) throw new WireException("Invalid parent");
+    $template = $this->wire()->templates->get((string)$data->template);
+    if(!$template instanceof Template OR !$template->id) throw new WireException("Invalid template");
+
+    // check name
+    $name = $data->name;
+    if(!$name) {
+      if(!$data->title) throw new WireException("If no name is set you need to set a title!");
+      $name = $this->sanitizer->pageName($data->title);
     }
 
-    /**
-     * Enable all languages for given page
-     *
-     * @param Page|string $page
-     * @return void
-     */
-    public function enableAllLanguagesForPage($page) {
-      $page = $this->pages->get((string)$page);
-      if($this->languages) {
-        foreach($this->languages as $lang) $page->set("status$lang", 1);
-      }
-      $page->save();
-    }
+    // set flag if page was created or not
+    $created = !$this->pages->get("parent=$parent,name=$name")->id;
 
-    /**
-     * Delete the given page including all children.
-     *
-     * @param Page|string $page
-     * @return void
-     */
-    public function deletePage($page) {
-      // make sure we got a page
-      $page = $this->pages->get((string)$page);
-      if(!$page->id) return;
+    // create page
+    $page = $this->createPage(
+      $data->title,
+      $name,
+      $template,
+      $parent,
+      $data->status,
+      $data->pageData
+    );
 
-      // make sure we can delete the page and delete it
-      // we also need to make sure that all descendants of this page are deletable
-      // todo: make this recursive?
-      $all = $this->wire(new PageArray());
-      $all->add($page);
-      $all->add($this->pages->find("has_parent=$page"));
-      foreach($all as $p) {
-        $p->addStatus(Page::statusSystemOverride);
-        $p->status = 1;
-        $p->save();
-      }
-      $this->pages->delete($page, true);
-    }
+    // if page was created we fire the onCreate callback
+    if($created AND is_callable($data->onCreate)) $data->onCreate->__invoke($page);
 
-    /**
-     * Delete pages matching the given selector
-     * @param mixed $selector
-     * @return void
-     */
-    public function deletePages($selector) {
-      $pages = $this->pages->find($selector);
-      foreach($pages as $page) $this->deletePage($page);
+    return $page;
+  }
+
+  /**
+   * Set page data via array
+   *
+   * Usage (set title of root page):
+   * $rm->setPageData("/", ['title' => 'foo']);
+   *
+   * @param Page $page
+   * @param array $data
+   * @return void
+   */
+  public function setPageData($page, $data) {
+    if(!$data) return;
+    $page = $this->wire->pages->get((string)$page);
+    if(!$page->id) return;
+    foreach($data as $k=>$v) $page->setAndSave($k, $v);
+  }
+
+  /**
+   * Enable all languages for given page
+   *
+   * @param Page|string $page
+   * @return void
+   */
+  public function enableAllLanguagesForPage($page) {
+    $page = $this->pages->get((string)$page);
+    if($this->languages) {
+      foreach($this->languages as $lang) $page->set("status$lang", 1);
     }
+    $page->save();
+  }
+
+  /**
+   * Delete the given page including all children.
+   *
+   * @param Page|string $page
+   * @return void
+   */
+  public function deletePage($page) {
+    // make sure we got a page
+    $page = $this->pages->get((string)$page);
+    if(!$page->id) return;
+
+    // make sure we can delete the page and delete it
+    // we also need to make sure that all descendants of this page are deletable
+    // todo: make this recursive?
+    $all = $this->wire(new PageArray());
+    $all->add($page);
+    $all->add($this->pages->find("has_parent=$page"));
+    foreach($all as $p) {
+      $p->addStatus(Page::statusSystemOverride);
+      $p->status = 1;
+      $p->save();
+    }
+    $this->pages->delete($page, true);
+  }
+
+  /**
+   * Delete pages matching the given selector
+   * @param mixed $selector
+   * @return void
+   */
+  public function deletePages($selector) {
+    $pages = $this->pages->find($selector);
+    foreach($pages as $page) $this->deletePage($page);
+  }
 
   /* ##### permissions ##### */
 
-    /**
-     * Add a permission to given role
-     *
-     * @param string|int $permission
-     * @param string|int $role
-     * @return boolean
-     */
-    public function addPermissionToRole($permission, $role) {
-      $role = $this->roles->get((string)$role);
-      if(!$role->id) return;
-      $role->of(false);
-      $role->addPermission($permission);
-      return $role->save();
-    }
+  /**
+   * Add a permission to given role
+   *
+   * @param string|int $permission
+   * @param string|int $role
+   * @return boolean
+   */
+  public function addPermissionToRole($permission, $role) {
+    $role = $this->roles->get((string)$role);
+    if(!$role->id) return;
+    $role->of(false);
+    $role->addPermission($permission);
+    return $role->save();
+  }
 
-    /**
-     * Add an array of permissions to an array of roles
-     *
-     * @param array|string $permissions
-     * @param array|string $roles
-     * @return void
-     */
-    public function addPermissionsToRoles($permissions, $roles) {
-      if(!is_array($permissions)) $permissions = [(string)$permissions];
-      if(!is_array($roles)) $roles = [(string)$roles];
-      foreach($permissions as $permission) {
-        foreach ($roles as $role) {
-          $this->addPermissionToRole($permission, $role);
-        }
+  /**
+   * Add an array of permissions to an array of roles
+   *
+   * @param array|string $permissions
+   * @param array|string $roles
+   * @return void
+   */
+  public function addPermissionsToRoles($permissions, $roles) {
+    if(!is_array($permissions)) $permissions = [(string)$permissions];
+    if(!is_array($roles)) $roles = [(string)$roles];
+    foreach($permissions as $permission) {
+      foreach ($roles as $role) {
+        $this->addPermissionToRole($permission, $role);
       }
     }
+  }
 
-    /**
-     * Remove a permission from given role
-     *
-     * @param string|int $permission
-     * @param string|int $role
-     * @return void
-     */
-    public function removePermissionFromRole($permission, $role) {
-      $role = $this->roles->get((string)$role);
-      $role->of(false);
-      $role->removePermission($permission);
-      return $role->save();
-    }
+  /**
+   * Remove a permission from given role
+   *
+   * @param string|int $permission
+   * @param string|int $role
+   * @return void
+   */
+  public function removePermissionFromRole($permission, $role) {
+    $role = $this->roles->get((string)$role);
+    $role->of(false);
+    $role->removePermission($permission);
+    return $role->save();
+  }
 
-    /**
-     * Remove an array of permissions to an array of roles
-     *
-     * @param array|string $permissions
-     * @param array|string $roles
-     * @return void
-     */
-    public function removePermissionsFromRoles($permissions, $roles) {
-      if(!is_array($permissions)) $permissions = [(string)$permissions];
-      if(!is_array($roles)) $roles = [(string)$roles];
-      foreach($permissions as $permission) {
-        foreach ($roles as $role) {
-          $this->removePermissionFromRole($permission, $role);
-        }
+  /**
+   * Remove an array of permissions to an array of roles
+   *
+   * @param array|string $permissions
+   * @param array|string $roles
+   * @return void
+   */
+  public function removePermissionsFromRoles($permissions, $roles) {
+    if(!is_array($permissions)) $permissions = [(string)$permissions];
+    if(!is_array($roles)) $roles = [(string)$roles];
+    foreach($permissions as $permission) {
+      foreach ($roles as $role) {
+        $this->removePermissionFromRole($permission, $role);
       }
     }
+  }
 
-    /**
-     * Create permission with given name
-     *
-     * @param string $name
-     * @param string $description
-     * @return Permission
-     */
-    public function createPermission($name, $description = null) {
-      // if the permission exists return it
-      $permission = $this->permissions->get((string)$name);
-      if(!$permission->id) $permission = $this->permissions->add($name);
-      $permission->setAndSave('title', $description);
-      return $permission;
-    }
+  /**
+   * Create permission with given name
+   *
+   * @param string $name
+   * @param string $description
+   * @return Permission
+   */
+  public function createPermission($name, $description = null) {
+    // if the permission exists return it
+    $permission = $this->permissions->get((string)$name);
+    if(!$permission->id) $permission = $this->permissions->add($name);
+    $permission->setAndSave('title', $description);
+    return $permission;
+  }
 
-    /**
-     * Delete the given permission
-     *
-     * @param Permission|string $permission
-     * @return void
-     */
-    public function deletePermission($permission) {
-      $permission = $this->permissions->get((string)$permission);
-      if(!$permission->id) return;
-      $this->permissions->delete($permission);
-    }
+  /**
+   * Delete the given permission
+   *
+   * @param Permission|string $permission
+   * @return void
+   */
+  public function deletePermission($permission) {
+    $permission = $this->permissions->get((string)$permission);
+    if(!$permission->id) return;
+    $this->permissions->delete($permission);
+  }
 
-    /**
-     * Create role with given name
-     *
-     * @param string $name
-     * @param array $permissions
-     * @return void
-     */
-    public function createRole($name, $permissions = []) {
-      // if the role exists return it
-      $role = $this->roles->get((string)$name);
-      if(!$role->id) $role = $this->roles->add($name);
+  /**
+   * Create role with given name
+   *
+   * @param string $name
+   * @param array $permissions
+   * @return void
+   */
+  public function createRole($name, $permissions = []) {
+    // if the role exists return it
+    $role = $this->roles->get((string)$name);
+    if(!$role->id) $role = $this->roles->add($name);
 
-      // add permissions
-      foreach($permissions as $permission) $this->addPermissionToRole($permission, $role);
+    // add permissions
+    foreach($permissions as $permission) $this->addPermissionToRole($permission, $role);
 
-      return $role;
-    }
+    return $role;
+  }
 
-    /**
-     * Delete the given role
-     *
-     * @param Role|string $role
-     * @return void
-     */
-    public function deleteRole($role) {
-      $role = $this->roles->get((string)$role);
-      if(!$role->id) return;
-      $this->roles->delete($role);
-    }
+  /**
+   * Delete the given role
+   *
+   * @param Role|string $role
+   * @return void
+   */
+  public function deleteRole($role) {
+    $role = $this->roles->get((string)$role);
+    if(!$role->id) return;
+    $this->roles->delete($role);
+  }
 
   /* ##### users ##### */
 
-    /**
-     * Create a PW user with given password
-     *
-     * If the user already exists it will return this user.
-     *
-     * @param string $username
-     * @param string $password
-     * @param string $adminTheme
-     * @return User
-     */
-    public function createUser($username, $password, $adminTheme = null) {
-      $user = $this->users->get($username);
-      if($user->id) return $user;
+  /**
+   * Create a PW user with given password
+   *
+   * If the user already exists it will return this user.
+   *
+   * @param string $username
+   * @param string $password
+   * @param string $adminTheme
+   * @return User
+   */
+  public function createUser($username, $password, $adminTheme = null) {
+    $user = $this->wire()->users->get($username);
+    if($user->id) return $user;
 
-      $user = $this->wire->users->add($username);
-      $user->pass = $password;
-      if($adminTheme) $user->admin_theme = 'AdminThemeUikit';
-      $user->save();
-      if($adminTheme) $user->setAndSave('admin_theme', $adminTheme);
-      return $user;
-    }
+    $user = $this->wire->users->add($username);
+    $user->pass = $password;
+    if($adminTheme) $user->admin_theme = 'AdminThemeUikit';
+    $user->save();
+    if($adminTheme) $user->setAndSave('admin_theme', $adminTheme);
+    return $user;
+  }
 
-    /**
-     * Delete a PW user
-     *
-     * @param string $username
-     * @return void
-     */
-    public function deleteUser($username) {
-      $user = $this->users->get($username);
-      if(!$user->id) return;
-      $u = $this->wire->users->delete($user);
-    }
+  /**
+   * Delete a PW user
+   *
+   * @param string $username
+   * @return void
+   */
+  public function deleteUser($username) {
+    $user = $this->wire()->users->get($username);
+    if(!$user->id) return;
+    $u = $this->wire->users->delete($user);
+  }
 
-    /**
-     * Add role to user
-     *
-     * @param string $role
-     * @param User|string $user
-     * @return void
-     */
-    public function addRoleToUser($role, $user) {
-      /** @var User $user */
-      $user = $this->users->get((string)$user);
-      if(!$user->id) throw new WireException("User not found");
-      $user->of(false);
-      $user->addRole($role);
-      $user->save();
-    }
+  /**
+   * Add role to user
+   *
+   * @param string $role
+   * @param User|string $user
+   * @return void
+   */
+  public function addRoleToUser($role, $user) {
+    /** @var User $user */
+    $user = $this->wire()->users->get((string)$user);
+    if(!$user->id) throw new WireException("User not found");
+    $user->of(false);
+    $user->addRole($role);
+    $user->save();
+  }
 
-    /**
-     * Add roles to user
-     *
-     * @param array $roles
-     * @param User|string $user
-     * @return void
-     */
-    public function addRolesToUser($roles, $user) {
-      foreach($roles as $role) $this->addRoleToUser($role, $user);
-    }
+  /**
+   * Add roles to user
+   *
+   * @param array $roles
+   * @param User|string $user
+   * @return void
+   */
+  public function addRolesToUser($roles, $user) {
+    foreach($roles as $role) $this->addRoleToUser($role, $user);
+  }
 
   /* ##### modules ##### */
 
-    /**
-     * Set module config data
-     *
-     * @param string|Module $module
-     * @param array $data
-     * @return Module|false
-     */
-    public function setModuleConfig($module, $data) {
-      $module = $this->modules->get((string)$module);
-      if(!$module) {
-        if($this->config->debug) throw new WireException("Module not found!");
-        else return false;
-      }
-      $this->modules->saveConfig($module, $data);
-      return $module;
+  /**
+   * Set module config data
+   *
+   * @param string|Module $module
+   * @param array $data
+   * @return Module|false
+   */
+  public function setModuleConfig($module, $data) {
+    $module = $this->wire()->modules->get((string)$module);
+    if(!$module) {
+      if($this->config->debug) throw new WireException("Module not found!");
+      else return false;
     }
+    $this->wire()->modules->saveConfig($module, $data);
+    return $module;
+  }
 
-    /**
-     * Update module config data
-     *
-     * @param string|Module $module
-     * @param array $data
-     * @return Module
-     */
-    public function updateModuleConfig($module, $data) {
-      $module = $this->modules->get((string)$module);
-      if(!$module) throw new WireException("Module not found!");
-
+  /**
+   * Update module config data
+   *
+   * @param string|Module $module
+   * @param array $data
+   * @return void
+   * @throws WireException
+   */
+  public function updateModuleConfig($module, $data) {
+    $isInstalled = $this->wire()->modules->isInstalled((string)$module);
+    if(!$isInstalled) throw new WireException("Module not found!");
+    if ($this->wire()->modules->isConfigurable($module)){
       $newdata = $this->getModuleConfig($module);
       foreach($data as $k=>$v) $newdata[$k] = $v;
-      $this->modules->saveConfig((string)$module, $newdata);
+      $this->wire()->modules->saveConfig((string)$module, $newdata);
+    }
+  }
+
+  /**
+   * Get module config data
+   *
+   * @param string $module
+   * @return array
+   * @throws WirePermissionException
+   */
+  public function getModuleConfig($module) {
+    $module = $this->wire()->modules->get($module);
+    return $this->wire()->modules->getModuleConfigData($module);
+  }
+
+  /**
+   * Install module
+   *
+   * If an URL is provided the module will be downloaded before installation.
+   *
+   * @param string $name
+   * @param string $url
+   * @return Module
+   * @throws WireException
+   */
+  public function installModule($name, $url = null) {
+    // if the module is already installed we return it
+    $module = $this->wire()->modules->get((string)$name);
+    if($module) return $module;
+
+    // if an url was provided, download the module
+    if($url) {
+      $url = $this->sanitizer->url($url);
+      $this->downloadModule($url);
     }
 
-    /**
-     * Get module config data
-     *
-     * @param string $module
-     * @return array
-     */
-    public function getModuleConfig($module) {
-      $module = $this->modules->get($module);
-      return $this->modules->getModuleConfigData($module);
-    }
+    // install and return the module
+    return $this->wire()->modules->install($name, array('force' => true));
+  }
 
-    /**
-     * Install module
-     *
-     * If an URL is provided the module will be downloaded before installation.
-     *
-     * @param string $name
-     * @param string $url
-     * @return void
-     */
-    public function installModule($name, $url = null) {
-      // if the module is already installed we return it
-      $module = $this->modules->get((string)$name);
-      if($module) return $module;
+  /**
+   * Download module from url
+   *
+   * @param string $url
+   * @return void
+   */
+  public function downloadModule($url) {
+    require_once($this->config->paths->modules . "Process/ProcessModule/ProcessModuleInstall.php");
+    $install = $this->wire(new ProcessModuleInstall());
+    $install->downloadModule($url);
+  }
 
-      // if an url was provided, download the module
-      if($url) $this->downloadModule($url);
+  /**
+   * Uninstall module
+   *
+   * @param string|Module $name
+   * @return void
+   */
+  public function uninstallModule($name) {
+    $this->wire()->modules->uninstall((string)$name);
+  }
 
-      // install and return the module
-      return $this->modules->install($name);
-    }
-
-    /**
-     * Download module from url
-     *
-     * @param string $url
-     * @return void
-     */
-    public function downloadModule($url) {
-      require_once($this->config->paths->modules . "Process/ProcessModule/ProcessModuleInstall.php");
-      $install = $this->wire(new ProcessModuleInstall());
-      $install->downloadModule($url);
-    }
-
-    /**
-     * Uninstall module
-     *
-     * @param string|Module $name
-     * @return void
-     */
-    public function uninstallModule($name) {
-      $this->modules->uninstall((string)$name);
-    }
-
-    /**
-     * Delete module
-     *
-     * @param string $name
-     * @return void
-     */
-    public function deleteModule($name) {
-      $module = $this->modules->get((string)$name);
-      $this->uninstallModule($name);
-      $this->files->rmdir($this->config->paths($module), true);
-    }
+  /**
+   * Delete module
+   *
+   * @param string $name
+   * @return void
+   */
+  public function deleteModule($name) {
+    $module = $this->wire()->modules->get((string)$name);
+    $this->uninstallModule($name);
+    $this->files->rmdir($this->config->paths($module), true);
+  }
 
   /* ##### helpers ##### */
 
-    /**
-     * Fire the callback if the version upgrading to ($to) is higher or equal
-     * to provided version ($version)
-     *
-     * 0.0.1 --> 0.0.2, VERSION = 0.0.2 --> fires
-     * 0.0.1 --> 0.0.5, VERSION = 0.0.2 --> fires
-     * 0.0.4 --> 0.0.5, VERSION = 0.0.2 --> fires
-     * 0.0.4 --> 0.0.5, VERSION = 1.0.2 --> does not fire
-     *
-     * @return void
-     */
-    public function fireSince($version, $to, $func) {
-      if($this->isLower($to, $version)) return;
-      $func->__invoke($this);
-    }
+  /**
+   * Fire the callback if the version upgrading to ($to) is higher or equal
+   * to provided version ($version)
+   *
+   * 0.0.1 --> 0.0.2, VERSION = 0.0.2 --> fires
+   * 0.0.1 --> 0.0.5, VERSION = 0.0.2 --> fires
+   * 0.0.4 --> 0.0.5, VERSION = 0.0.2 --> fires
+   * 0.0.4 --> 0.0.5, VERSION = 1.0.2 --> does not fire
+   *
+   * @return void
+   */
+  public function fireSince($version, $to, $func) {
+    if($this->isLower($to, $version)) return;
+    $func->__invoke($this);
+  }
 
-    /**
-     * Sanitize repeater matrix array
-     * @param array $data
-     * @return array
-     */
-    private function getMatrixDataArray($data) {
-      $newdata = [];
-      foreach($data as $key=>$val) {
-        // make sure fields is an array of ids
-        if($key === 'fields') {
-          $ids = [];
-          foreach($val as $_field) {
-            $ids[] = $this->fields->get((string)$_field)->id;
-          }
-          $val = $ids;
+  /**
+   * Sanitize repeater matrix array
+   * @param array $data
+   * @return array
+   */
+  private function getMatrixDataArray($data) {
+    $newdata = [];
+    foreach($data as $key=>$val) {
+      // make sure fields is an array of ids
+      if($key === 'fields') {
+        $ids = [];
+        foreach($val as $_field) {
+          $ids[] = $this->wire()->fields->get((string)$_field)->id;
         }
-        $newdata[$key] = $val;
+        $val = $ids;
       }
-      return $newdata;
+      $newdata[$key] = $val;
+    }
+    return $newdata;
+  }
+
+  /**
+   * Get role array containing only role ids
+   * @param mixed $data
+   * @return array
+   */
+  private function getRoleArray($data) {
+    $arr = [];
+    foreach($data as $item) {
+      if(is_int($item)) $arr[] = $item;
+      if(is_object($item)) $item = (string)$item;
+      if(is_string($item)) $arr[] = (int)$item;
+    }
+    return $arr;
+  }
+
+  /**
+   * Is v1 lower than v2?
+   * @return bool
+   */
+  public function isLower($v1, $v2) {
+    return version_compare($v1, $v2) < 0;
+  }
+
+  /**
+   * Is v1 higher than v2?
+   * @return bool
+   */
+  public function isHigher($v1, $v2) {
+    return version_compare($v1, $v2) > 0;
+  }
+
+  /**
+   * Is v1 the same as v2?
+   * @return bool
+   */
+  public function isSame($v1, $v2) {
+    return version_compare($v1, $v2) === 0;
+  }
+
+  /**
+   * Reset repeaterFields property of matrix field
+   * @param Field $field
+   * @return Field
+   */
+  private function resetMatrixRepeaterFields(Field $field) {
+    $ids = [$this->wire()->fields->get('repeater_matrix_type')->id];
+    $n = 1;
+    while(array_key_exists("matrix{$n}_name", $field->getArray())) {
+      $ids = array_merge($ids, $field->get("matrix{$n}_fields") ?: []);
+      $n++;
+    }
+    $field->set('repeaterFields', $ids);
+
+    // remove unneeded fields
+    $tpl = $this->getRepeaterTemplate($field);
+    foreach($tpl->fields as $f) {
+      if($f->name === 'repeater_matrix_type') continue;
+      if(in_array($f->id, $ids)) continue;
+      $this->removeFieldFromTemplate($f, $tpl);
     }
 
-    /**
-     * Get role array containing only role ids
-     * @param mixed $data
-     * @return array
-     */
-    private function getRoleArray($data) {
-      $arr = [];
-      foreach($data as $item) {
-        if(is_int($item)) $arr[] = $item;
-        if(is_object($item)) $item = (string)$item;
-        if(is_string($item)) $arr[] = (int)$item;
-      }
-      return $arr;
-    }
-
-    /**
-     * Is v1 lower than v2?
-     * @return bool
-     */
-    public function isLower($v1, $v2) {
-      return version_compare($v1, $v2) < 0;
-    }
-
-    /**
-     * Is v1 higher than v2?
-     * @return bool
-     */
-    public function isHigher($v1, $v2) {
-      return version_compare($v1, $v2) > 0;
-    }
-
-    /**
-     * Is v1 the same as v2?
-     * @return bool
-     */
-    public function isSame($v1, $v2) {
-      return version_compare($v1, $v2) === 0;
-    }
-
-    /**
-     * Reset repeaterFields property of matrix field
-     * @param Field $field
-     * @return Field
-     */
-    private function resetMatrixRepeaterFields(Field $field) {
-      $ids = [$this->fields->get('repeater_matrix_type')->id];
-      $n = 1;
-      while(array_key_exists("matrix{$n}_name", $field->getArray())) {
-        $ids = array_merge($ids, $field->get("matrix{$n}_fields") ?: []);
-        $n++;
-      }
-      $field->set('repeaterFields', $ids);
-
-      // remove unneeded fields
-      $tpl = $this->getRepeaterTemplate($field);
-      foreach($tpl->fields as $f) {
-        if($f->name === 'repeater_matrix_type') continue;
-        if(in_array($f->id, $ids)) continue;
-        $this->removeFieldFromTemplate($f, $tpl);
-      }
-
-      return $field;
-    }
+    return $field;
+  }
 
   /* ##### config file support ##### */
 
@@ -1921,6 +1929,7 @@ class RockMigrations extends WireData implements Module {
    * eg adding custom tags to all fields or templates that where migrated
    *
    * @return WireData
+   * @throws WireException
    */
   public function migrate($config, $vars = []) {
     $config = $this->getConfig($config, $vars);
