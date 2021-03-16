@@ -9,12 +9,11 @@
 class RockMigrations extends WireData implements Module {
 
   private $module;
-  public $data;
 
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.35',
+      'version' => '0.0.36',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -28,10 +27,6 @@ class RockMigrations extends WireData implements Module {
 
     // set API variable
     $this->wire('rockmigrations', $this);
-
-    // new WireData object to store runtime data of migrations
-    // see the demo module how to use this
-    $this->data = new WireData();
 
     // attach hooks
     $this->loadFilesOnDemand();
