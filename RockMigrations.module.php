@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.36',
+      'version' => '0.0.37',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -249,6 +249,42 @@ class RockMigrations extends WireData implements Module {
    */
   public function ___getMigrationsPath() {
     return $this->config->paths($this->module) . $this->className() . "/";
+  }
+
+  /**
+   * Create view files with include statement in templates folder
+   *
+   * Usage:
+   * Let's say we have a module "Foo"; Inside the module's path we have
+   * a "views" folder. In the module's fireOnRefresh() migration we simply add:
+   *
+   * public function migrate() {
+   *   $rm = ...
+   *   $rm->migrate(...); // migrate fields and templates
+   *   $rm->includeViews($this);
+   * }
+   *
+   * This will look for php files in folder /path/to/your/module/views and create
+   * a php file in /site/templates that include()'s the related PHP file from
+   * within the modules folder. This means that you can manage the code of the
+   * template file from within your module without ever copying any files manually
+   * to the templates folder :)
+   *
+   * @return void
+   */
+  public function includeViews($path) {
+    $config = $this->wire->config;
+    $files = $this->wire->files;
+    if($path instanceof Module) $path = $config->paths($path)."views";
+    foreach($files->find($path, ['extensions' => ['php']]) as $file) {
+      $name = pathinfo($file, PATHINFO_FILENAME);
+      $url = str_replace($config->paths->root, '', $file);
+      $content = "<?php namespace ProcessWire;\n"
+        ."// DONT CHANGE THIS FILE\n"
+        ."// it is created automatically via RockMigrations\n"
+        ."include(\$config->paths->root.'$url');\n";
+      file_put_contents($config->paths->templates.$name.".php", $content);
+    }
   }
 
   /**
