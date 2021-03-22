@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.37',
+      'version' => '0.0.38',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -590,6 +590,7 @@ class RockMigrations extends WireData implements Module {
         $field = $this->wire(new Field());
         $field->type = $type;
         $field->name = $name;
+        $field->label = $name; // set label (mandatory since ~3.0.172)
         $field->save();
 
         // create end field for fieldsets
