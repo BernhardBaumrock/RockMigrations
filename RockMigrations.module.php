@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.38',
+      'version' => '0.0.39',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1730,14 +1730,14 @@ class RockMigrations extends WireData implements Module {
      */
     public function installModule($name, $url = null) {
       // if the module is already installed we return it
-      $module = $this->modules->get((string)$name); // this is not good because getting a module will also install it, so if the files are on disk they are installed
+      $module = $this->modules->get((string)$name);
       if($module) return $module;
 
       // if an url was provided, download the module
       if($url) $this->downloadModule($url);
 
       // install and return the module
-      return $this->modules->install($name, array('force' => true));
+      return $this->modules->install($name, ['force' => true]);
     }
 
     /**
