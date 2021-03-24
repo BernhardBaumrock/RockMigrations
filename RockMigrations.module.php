@@ -34,6 +34,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Execute downgrade of given version
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * @param string $version
    * @return void
@@ -53,6 +54,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Execute the upgrade from one version to another
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * Does also execute on downgrades.
    * If a module is set, we execute this upgrade on that module and not on the current.
@@ -131,6 +133,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Execute all Upgrade Scripts on Installation
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * @return void
    */
@@ -145,6 +148,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Execute all Downgrade Scripts on Uninstallation
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * @return void
    */
@@ -181,7 +185,12 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * Get Inputfield object from array syntax
+   * Helper that returns a new Inputfield object from array syntax
+   *
+   * Usage:
+   * $f = $rm->getInputfield(['type'=>'markup', 'value'=>'foo']);
+   * $form->insertAfter($f, $form->get('title'));
+   *
    * @return Inputfield
    */
   public function getInputfield($array) {
@@ -192,6 +201,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Get Migration Object from Version Number
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * @param string $version
    * @return RockMigration
@@ -218,6 +228,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Get all migrations of one module
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * @param Module $module
    * @return array
@@ -400,6 +411,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Test upgrade for given version
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * This will execute the downgrade and then the upgrade of only this version.
    *
@@ -439,6 +451,7 @@ class RockMigrations extends WireData implements Module {
 
   /**
    * Execute upgrade of given version
+   * DEPRECATED SEE https://bit.ly/3lPWg3Q
    *
    * @param string $version
    * @return void
