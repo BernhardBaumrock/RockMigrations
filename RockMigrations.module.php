@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.39',
+      'version' => '0.0.40',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -174,9 +174,10 @@ class RockMigrations extends WireData implements Module {
    *
    * @return void
    */
-  public function fireOnRefresh($module, $method) {
+  public function fireOnRefresh($module, $method, $priority = []) {
     if(!$this->wire->user->isSuperuser()) return;
-    $this->wire->addHookAfter("Modules::refresh", $module, $method);
+    if(is_int($priority)) $priority = ['priority'=>$priority];
+    $this->wire->addHookAfter("Modules::refresh", $module, $method, $priority);
   }
 
   /**
