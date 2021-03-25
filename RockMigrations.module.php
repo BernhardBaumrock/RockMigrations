@@ -42,8 +42,7 @@ class RockMigrations extends WireData implements Module {
     $path = Paths::normalizeSeparators($path);
     $config = $this->wire->config;
     $url = str_replace($config->paths->root, $config->urls->root, $path);
-    $m = '';
-    if($timestamp) $m = "?m=".filemtime($path);
+    $m = $timestamp ? "?m=".filemtime($path) : '';
     $this->wire->config->scripts->add($url.$m);
   }
 
@@ -57,8 +56,7 @@ class RockMigrations extends WireData implements Module {
     $path = Paths::normalizeSeparators($path);
     $config = $this->wire->config;
     $url = str_replace($config->paths->root, $config->urls->root, $path);
-    $m = '';
-    if($timestamp) $m = "?m=".filemtime($path);
+    $m = $timestamp ? "?m=".filemtime($path) : '';
     $this->wire->config->styles->add($url.$m);
   }
 
