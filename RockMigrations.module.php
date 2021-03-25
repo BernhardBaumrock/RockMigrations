@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.40',
+      'version' => '0.0.41',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -858,6 +858,10 @@ class RockMigrations extends WireData implements Module {
         if($key === "options") {
           $options = $data[$key];
           $this->setOptions($field, $options, true);
+
+          // this prevents setting the "options" property directly to the field
+          // if not done, the field shows raw option values when rendered
+          unset($data['options']);
         }
 
       }
@@ -999,6 +1003,16 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Set options of an options field as array
+     *
+     * Usage:
+     * $rm->setOptions($field, [
+     *   1 => 'foo|My foo option',
+     *   2 => 'bar|My bar option',
+     * ]);
+     *
+     * CAUTION: Make sure that you do not set 0 as key of any option!
+     * See https://github.com/BernhardBaumrock/RockMigrations/issues/16
+     *
      * @param Field|string $field
      * @param array $options
      * @param bool $allowDelete
