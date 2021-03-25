@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.41',
+      'version' => '0.0.42',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -30,6 +30,36 @@ class RockMigrations extends WireData implements Module {
 
     // attach hooks
     $this->loadFilesOnDemand();
+  }
+
+  /**
+   * Add script to pw $config
+   * Usage:
+   * $rm->addScript(__DIR__."/Foo.js");
+   */
+  public function addScript($path, $timestamp = true) {
+    if(!is_file($path)) return;
+    $path = Paths::normalizeSeparators($path);
+    $config = $this->wire->config;
+    $url = str_replace($config->paths->root, $config->urls->root, $path);
+    $m = '';
+    if($timestamp) $m = "?m=".filemtime($path);
+    $this->wire->config->scripts->add($url.$m);
+  }
+
+  /**
+   * Add style to pw $config
+   * Usage:
+   * $rm->addStyle(__DIR__."/Foo.js");
+   */
+  public function addStyle($path, $timestamp = true) {
+    if(!is_file($path)) return;
+    $path = Paths::normalizeSeparators($path);
+    $config = $this->wire->config;
+    $url = str_replace($config->paths->root, $config->urls->root, $path);
+    $m = '';
+    if($timestamp) $m = "?m=".filemtime($path);
+    $this->wire->config->styles->add($url.$m);
   }
 
   /**
