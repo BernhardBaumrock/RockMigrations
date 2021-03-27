@@ -204,12 +204,21 @@ class RockMigrations extends WireData implements Module {
    * In your module's init() use
    * $rm->fireOnRefresh($this, "migrate");
    *
+   * In ready.php you can use it with a callback function:
+   * $rm->fireOnRefresh(function($event) use($rm) {
+   *   $rm->deleteField(...);
+   * });
+   *
    * @return void
    */
-  public function fireOnRefresh($module, $method, $priority = []) {
+  public function fireOnRefresh($module, $method = null, $priority = []) {
     if(!$this->wire->user->isSuperuser()) return;
     if(is_int($priority)) $priority = ['priority'=>$priority];
-    $this->wire->addHookAfter("Modules::refresh", $module, $method, $priority);
+    if(is_callable($module)) {
+      $callback = $module;
+      $this->wire->addHookAfter("Modules::refresh", $callback, null, $priority);
+    }
+    else $this->wire->addHookAfter("Modules::refresh", $module, $method, $priority);
   }
 
   /**
