@@ -214,11 +214,13 @@ class RockMigrations extends WireData implements Module {
   public function fireOnRefresh($module, $method = null, $priority = []) {
     if(!$this->wire->user->isSuperuser()) return;
     if(is_int($priority)) $priority = ['priority'=>$priority];
-    if(is_callable($module)) {
+    if($module instanceof Module) {
+      $this->wire->addHookAfter("Modules::refresh", $module, $method, $priority);
+    }
+    elseif(is_callable($module)) {
       $callback = $module;
       $this->wire->addHookAfter("Modules::refresh", $callback, null, $priority);
     }
-    else $this->wire->addHookAfter("Modules::refresh", $module, $method, $priority);
   }
 
   /**
