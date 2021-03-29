@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.42',
+      'version' => '0.0.43',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1282,7 +1282,9 @@ class RockMigrations extends WireData implements Module {
     /**
      * Set parent child family settings for two templates
      */
-    public function setParentChild($parent, $child) {
+    public function setParentChild($parent, $child, $onlyOneParent = true) {
+      $noParents = 0; // many parents are allowed
+      if($onlyOneParent) $noParents = -1;
       $this->setTemplateData($child, [
         'noChildren' => 1, // may not have children
         'noParents' => '', // can be used for new pages
@@ -1290,7 +1292,7 @@ class RockMigrations extends WireData implements Module {
       ]);
       $this->setTemplateData($parent, [
         'noChildren' => 0, // may have children
-        'noParents' => -1, // only one page
+        'noParents' => $noParents, // only one page
         'childTemplates' => [(string)$child],
         'childNameFormat' => 'title',
       ]);
