@@ -1221,7 +1221,7 @@ class RockMigrations extends WireData implements Module {
      * Get template by name
      *
      * @param Template|string $name
-     * @return mixed
+     * @return Template|null
      */
     public function getTemplate($name, $exception = null) {
       $template = $this->templates->get((string)$name);
@@ -1375,6 +1375,44 @@ class RockMigrations extends WireData implements Module {
      */
     public function setTemplatesData($templates, $data) {
       foreach($templates as $t) $this->setTemplateData($t, $data);
+    }
+
+    /**
+     * Add given access to given template for given role
+     * Example:
+     * $rm->addTemplateAccess("my-template", "my-role", "edit");
+     * @return void
+     */
+    public function addTemplateAccess($tpl, $role, $acc) {
+      $tpl = $this->getTemplate($tpl);
+      $role = $this->getRole($role);
+      $tpl->addRole($role, $acc);
+      $tpl->save();
+    }
+
+    /**
+     * Set settings of a template's access tab
+     * Thx @apeisa https://bit.ly/2QU1b8e
+     * Usage:
+     * $rm->setTemplateAccess("my-tpl", "my-role", ["view", "edit"]);
+     * @return void
+     */
+    public function setTemplateAccess($tpl, $role, $access) {
+      $tpl = $this->getTemplate($tpl);
+      $role = $this->getRole($role);
+      $this->removeTemplateAccess($tpl, $role);
+      $this->setTemplateData($tpl, ['useRoles'=>1]);
+      foreach($access as $acc) $this->addTemplateAccess($tpl, $role, $acc);
+    }
+
+    /**
+     * Remove access to template for given role
+     * @return void
+     */
+    public function removeTemplateAccess($tpl, $role) {
+      $tpl = $this->getTemplate($tpl);
+      $tpl->removeRole($this->getRole($role), "all");
+      $tpl->save();
     }
 
   /* ##### pages ##### */
@@ -1557,7 +1595,24 @@ class RockMigrations extends WireData implements Module {
       foreach($pages as $page) $this->deletePage($page);
     }
 
-  /* ##### permissions ##### */
+  /* ##### roles & permissions ##### */
+
+    /**
+     * Get role object
+     * @return Role|null
+     */
+    public function getRole($role, $exception = false) {
+      $_role = (string)$role;
+      $role = $this->roles->get($_role);
+
+      // return role when found or no exception
+      if($role) return $role;
+      if($exception === false) return;
+
+      // role was not found, throw exception
+      if(!$exception) $exception = "Role $_role not found";
+      throw new WireException($exception);
+    }
 
     /**
      * Add a permission to given role
@@ -1567,7 +1622,7 @@ class RockMigrations extends WireData implements Module {
      * @return boolean
      */
     public function addPermissionToRole($permission, $role) {
-      $role = $this->roles->get((string)$role);
+      $role = $this->getRole($role);
       if(!$role->id) return;
       $role->of(false);
       $role->addPermission($permission);
@@ -1599,7 +1654,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function removePermissionFromRole($permission, $role) {
-      $role = $this->roles->get((string)$role);
+      $role = $this->getRole($role);
       $role->of(false);
       $role->removePermission($permission);
       return $role->save();
@@ -1620,6 +1675,18 @@ class RockMigrations extends WireData implements Module {
           $this->removePermissionFromRole($permission, $role);
         }
       }
+    }
+
+    /**
+     * Set permissions for given role
+     * This will remove all permissions that are not listed in the array!
+     * If you just want to add permissions use addPermissionsToRole()
+     * @return void
+     */
+    public function setRolePermissions($role, $permissions) {
+      $role = $this->getRole($role);
+      foreach($role->permissions as $p) $this->removePermissionFromRole($p, $role);
+      foreach($permissions as $perm) $this->addPermissionToRole($perm, $role);
     }
 
     /**
@@ -1674,7 +1741,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function deleteRole($role) {
-      $role = $this->roles->get((string)$role);
+      $role = $this->getRole($role);
       if(!$role->id) return;
       $this->roles->delete($role);
     }
@@ -1976,6 +2043,7 @@ class RockMigrations extends WireData implements Module {
     if(!array_key_exists("fields", $config)) $config['fields'] = [];
     if(!array_key_exists("templates", $config)) $config['templates'] = [];
     if(!array_key_exists("pages", $config)) $config['pages'] = [];
+    if(!array_key_exists("roles", $config)) $config['roles'] = [];
 
     return $config;
   }
@@ -2038,10 +2106,18 @@ class RockMigrations extends WireData implements Module {
       if(array_key_exists('type', $data)) $this->createField($name, $data['type']);
     }
     foreach($config->templates as $name=>$data) $this->createTemplate($name, false);
+    foreach($config->roles as $name=>$data) $this->createRole($name);
 
     // set field+template data after they have been created
     foreach($config->fields as $name=>$data) $this->setFieldData($name, $data);
-    foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data, true);
+    foreach($config->templates as $name=>$data) $this->setTemplateData($name, $data);
+    foreach($config->roles as $role=>$data) {
+      // set permissions for this role
+      if(array_key_exists("permissions", $data)) $this->setRolePermissions($role, $data['permissions']);
+      if(array_key_exists("access", $data)) {
+        foreach($data['access'] as $tpl=>$access) $this->setTemplateAccess($tpl, $role, $access);
+      }
+    }
 
     // setup pages
     foreach($config->pages as $name=>$data) {
