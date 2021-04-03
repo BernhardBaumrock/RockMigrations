@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.43',
+      'version' => '0.0.44',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1163,6 +1163,19 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Add given access to given template for given role
+     * Example:
+     * $rm->addTemplateAccess("my-template", "my-role", "edit");
+     * @return void
+     */
+    public function addTemplateAccess($tpl, $role, $acc) {
+      $tpl = $this->getTemplate($tpl);
+      $role = $this->getRole($role);
+      $tpl->addRole($role, $acc);
+      $tpl->save();
+    }
+
+    /**
      * Create a new ProcessWire Template
      *
      * @param string $name
@@ -1246,6 +1259,16 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Remove access to template for given role
+     * @return void
+     */
+    public function removeTemplateAccess($tpl, $role) {
+      $tpl = $this->getTemplate($tpl);
+      $tpl->removeRole($this->getRole($role), "all");
+      $tpl->save();
+    }
+
+    /**
      * This renames a template and corresponding fieldgroup
      * @return Template
      */
@@ -1296,6 +1319,21 @@ class RockMigrations extends WireData implements Module {
         'childTemplates' => [(string)$child],
         'childNameFormat' => 'title',
       ]);
+    }
+
+    /**
+     * Set settings of a template's access tab
+     * Thx @apeisa https://bit.ly/2QU1b8e
+     * Usage:
+     * $rm->setTemplateAccess("my-tpl", "my-role", ["view", "edit"]);
+     * @return void
+     */
+    public function setTemplateAccess($tpl, $role, $access) {
+      $tpl = $this->getTemplate($tpl);
+      $role = $this->getRole($role);
+      $this->removeTemplateAccess($tpl, $role);
+      $this->setTemplateData($tpl, ['useRoles'=>1]);
+      foreach($access as $acc) $this->addTemplateAccess($tpl, $role, $acc);
     }
 
     /**
@@ -1375,44 +1413,6 @@ class RockMigrations extends WireData implements Module {
      */
     public function setTemplatesData($templates, $data) {
       foreach($templates as $t) $this->setTemplateData($t, $data);
-    }
-
-    /**
-     * Add given access to given template for given role
-     * Example:
-     * $rm->addTemplateAccess("my-template", "my-role", "edit");
-     * @return void
-     */
-    public function addTemplateAccess($tpl, $role, $acc) {
-      $tpl = $this->getTemplate($tpl);
-      $role = $this->getRole($role);
-      $tpl->addRole($role, $acc);
-      $tpl->save();
-    }
-
-    /**
-     * Set settings of a template's access tab
-     * Thx @apeisa https://bit.ly/2QU1b8e
-     * Usage:
-     * $rm->setTemplateAccess("my-tpl", "my-role", ["view", "edit"]);
-     * @return void
-     */
-    public function setTemplateAccess($tpl, $role, $access) {
-      $tpl = $this->getTemplate($tpl);
-      $role = $this->getRole($role);
-      $this->removeTemplateAccess($tpl, $role);
-      $this->setTemplateData($tpl, ['useRoles'=>1]);
-      foreach($access as $acc) $this->addTemplateAccess($tpl, $role, $acc);
-    }
-
-    /**
-     * Remove access to template for given role
-     * @return void
-     */
-    public function removeTemplateAccess($tpl, $role) {
-      $tpl = $this->getTemplate($tpl);
-      $tpl->removeRole($this->getRole($role), "all");
-      $tpl->save();
     }
 
   /* ##### pages ##### */
@@ -1598,23 +1598,6 @@ class RockMigrations extends WireData implements Module {
   /* ##### roles & permissions ##### */
 
     /**
-     * Get role object
-     * @return Role|null
-     */
-    public function getRole($role, $exception = false) {
-      $_role = (string)$role;
-      $role = $this->roles->get($_role);
-
-      // return role when found or no exception
-      if($role) return $role;
-      if($exception === false) return;
-
-      // role was not found, throw exception
-      if(!$exception) $exception = "Role $_role not found";
-      throw new WireException($exception);
-    }
-
-    /**
      * Add a permission to given role
      *
      * @param string|int $permission
@@ -1644,6 +1627,80 @@ class RockMigrations extends WireData implements Module {
           $this->addPermissionToRole($permission, $role);
         }
       }
+    }
+
+    /**
+     * Create permission with given name
+     *
+     * @param string $name
+     * @param string $description
+     * @return Permission
+     */
+    public function createPermission($name, $description = null) {
+      // if the permission exists return it
+      $permission = $this->permissions->get((string)$name);
+      if(!$permission->id) $permission = $this->permissions->add($name);
+      $permission->setAndSave('title', $description);
+      return $permission;
+    }
+
+    /**
+     * Create role with given name
+     *
+     * @param string $name
+     * @param array $permissions
+     * @return void
+     */
+    public function createRole($name, $permissions = []) {
+      // if the role exists return it
+      $role = $this->roles->get((string)$name);
+      if(!$role->id) $role = $this->roles->add($name);
+
+      // add permissions
+      foreach($permissions as $permission) $this->addPermissionToRole($permission, $role);
+
+      return $role;
+    }
+
+    /**
+     * Delete the given permission
+     *
+     * @param Permission|string $permission
+     * @return void
+     */
+    public function deletePermission($permission) {
+      $permission = $this->permissions->get((string)$permission);
+      if(!$permission->id) return;
+      $this->permissions->delete($permission);
+    }
+
+    /**
+     * Delete the given role
+     *
+     * @param Role|string $role
+     * @return void
+     */
+    public function deleteRole($role) {
+      $role = $this->getRole($role);
+      if(!$role->id) return;
+      $this->roles->delete($role);
+    }
+
+    /**
+     * Get role object
+     * @return Role|null
+     */
+    public function getRole($role, $exception = false) {
+      $_role = (string)$role;
+      $role = $this->roles->get($_role);
+
+      // return role when found or no exception
+      if($role) return $role;
+      if($exception === false) return;
+
+      // role was not found, throw exception
+      if(!$exception) $exception = "Role $_role not found";
+      throw new WireException($exception);
     }
 
     /**
@@ -1687,63 +1744,6 @@ class RockMigrations extends WireData implements Module {
       $role = $this->getRole($role);
       foreach($role->permissions as $p) $this->removePermissionFromRole($p, $role);
       foreach($permissions as $perm) $this->addPermissionToRole($perm, $role);
-    }
-
-    /**
-     * Create permission with given name
-     *
-     * @param string $name
-     * @param string $description
-     * @return Permission
-     */
-    public function createPermission($name, $description = null) {
-      // if the permission exists return it
-      $permission = $this->permissions->get((string)$name);
-      if(!$permission->id) $permission = $this->permissions->add($name);
-      $permission->setAndSave('title', $description);
-      return $permission;
-    }
-
-    /**
-     * Delete the given permission
-     *
-     * @param Permission|string $permission
-     * @return void
-     */
-    public function deletePermission($permission) {
-      $permission = $this->permissions->get((string)$permission);
-      if(!$permission->id) return;
-      $this->permissions->delete($permission);
-    }
-
-    /**
-     * Create role with given name
-     *
-     * @param string $name
-     * @param array $permissions
-     * @return void
-     */
-    public function createRole($name, $permissions = []) {
-      // if the role exists return it
-      $role = $this->roles->get((string)$name);
-      if(!$role->id) $role = $this->roles->add($name);
-
-      // add permissions
-      foreach($permissions as $permission) $this->addPermissionToRole($permission, $role);
-
-      return $role;
-    }
-
-    /**
-     * Delete the given role
-     *
-     * @param Role|string $role
-     * @return void
-     */
-    public function deleteRole($role) {
-      $role = $this->getRole($role);
-      if(!$role->id) return;
-      $this->roles->delete($role);
     }
 
   /* ##### users ##### */
