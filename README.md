@@ -44,7 +44,9 @@ $rm->migrate([
     'events-manager' => [
       'permissions' => ['page-view', 'page-edit'],
       'access' => [
-        'events' => ['view', 'edit', 'add'],
+        // make the parent page non-editable, but allow adding of children
+        'events' => ['view', 'add'],
+        // all children are editable and we allow to create new event pages
         'event' => ['view', 'edit', 'create'],
       ],
     ],
