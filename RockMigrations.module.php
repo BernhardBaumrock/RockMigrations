@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.45',
+      'version' => '0.0.46',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -460,6 +460,19 @@ class RockMigrations extends WireData implements Module {
    */
   public function readyPageClass($data) {
     $this->initPageClass($data, 'ready');
+  }
+
+  /**
+   * Return a sanitized pagename using the replacements set in InputfieldPagename
+   * @return string
+   */
+  public function sanitizePagename($str) {
+    $f = $this->wire->modules->get("InputfieldPagename");
+    return $this->wire->sanitizer->pageName(str_replace(
+      array_keys($f->replacements),
+      array_values($f->replacements),
+      mb_strtolower($str)
+    ));
   }
 
   /**
