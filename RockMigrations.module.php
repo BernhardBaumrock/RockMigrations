@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.46',
+      'version' => '0.0.47',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -366,7 +366,7 @@ class RockMigrations extends WireData implements Module {
    *
    * @return void
    */
-  public function initClasses($path, $namespace = null, $autoload = true) {
+  public function initClasses($path, $namespace = "ProcessWire", $autoload = true) {
     if($autoload) $this->autoload($path, $namespace);
     foreach($this->files->find($path, ['extensions' => ['php']]) as $file) {
       $info = $this->info($file);
@@ -445,7 +445,7 @@ class RockMigrations extends WireData implements Module {
    * This will NOT load the classes - use autoload() or initClasses() before
    * @return void
    */
-  public function readyClasses($path, $namespace = null) {
+  public function readyClasses($path, $namespace = "ProcessWire") {
     foreach($this->files->find($path, ['extensions' => ['php']]) as $file) {
       $info = $this->info($file);
       $class = $info->filename;
