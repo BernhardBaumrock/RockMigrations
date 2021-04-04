@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.48',
+      'version' => '0.0.49',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1245,11 +1245,11 @@ class RockMigrations extends WireData implements Module {
     /**
      * Delete a ProcessWire Template
      *
-     * @param string $name
+     * @param mixed $tpl
      * @return void
      */
-    public function deleteTemplate($name) {
-      $template = $this->templates->get($name);
+    public function deleteTemplate($tpl) {
+      $template = $this->getTemplate($tpl);
       if(!$template OR !$template->id) return;
 
       // remove all pages having this template
@@ -1265,8 +1265,21 @@ class RockMigrations extends WireData implements Module {
       $this->templates->delete($template);
 
       // delete the fieldgroup
-      $fg = $this->fieldgroups->get($name);
+      $fg = $this->fieldgroups->get((string)$tpl);
       if($fg) $this->fieldgroups->delete($fg);
+    }
+
+    /**
+     * Delete templates
+     *
+     * Usage
+     * $rm->deleteTemplates("tags=YourModule");
+     *
+     * @param string $selector
+     */
+    public function deleteTemplates($selector) {
+      $templates = $this->wire->templates->find($selector);
+      foreach($templates as $tpl) $this->deleteTemplate($tpl);
     }
 
     /**
