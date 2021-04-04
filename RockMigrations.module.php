@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.49',
+      'version' => '0.0.50',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -734,10 +734,16 @@ class RockMigrations extends WireData implements Module {
     /**
      * Delete given fields
      *
-     * @param array $fields
+     * If parameter is a string we use it as selector for $fields->find()
+     *
+     * Usage:
+     * $rm->deleteFields("tags=MyModule");
+     *
+     * @param array|string $fields
      * @return void
      */
     public function deleteFields($fields) {
+      if(is_string($fields)) $fields = $this->wire->fields->find($fields);
       foreach($fields as $field) $this->deleteField($field);
     }
 
