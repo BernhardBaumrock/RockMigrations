@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.44',
+      'version' => '0.0.45',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -58,6 +58,21 @@ class RockMigrations extends WireData implements Module {
     $url = str_replace($config->paths->root, $config->urls->root, $path);
     $m = $timestamp ? "?m=".filemtime($path) : '';
     $this->wire->config->styles->add($url.$m);
+  }
+
+  /**
+   * Register autoloader for all classes in given folder
+   * This will NOT trigger init() or ready()
+   * Use $rm->initClasses() AFTER autoload() if you also want to trigger init()
+   */
+  public function autoload($path, $namespace) {
+    $path = Paths::normalizeSeparators($path);
+    spl_autoload_register(function($class) use($path, $namespace) {
+      if(strpos($class, "$namespace\\") !== 0) return;
+      $name = substr($class, strlen($namespace)+1);
+      $file = "$path/$name.php";
+      if(is_file($file)) require_once($file);
+    });
   }
 
   /**
@@ -339,19 +354,31 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * Call init() of pageclass if it exists
+   * Trigger init() method of classes in this folder
    *
-   * Usage:
-   * The preferred usage is to use the classname to load the class.
-   * This makes sure that the init() is triggered even if no page exists.
-   *
-   * In init() of a module:
-   * $rm->initPageClass("MyCustomPageClass");
-   *
-   * Usage on existing pages:
-   * $rm->initPageClass("/foo");
+   * If autoload is set to TRUE it will attach a class autoloader before
+   * triggering the init() method. The autoloader is important so that we do
+   * not get any conflicts on the loading order of the classes. This could
+   * happen if we just used require() in here because then the loadind order
+   * would depend on the file names of loaded classes. This would cause problems
+   * if for example class BAR was dependent on class FOO which would not exist
+   * on load of BAR.
    *
    * @return void
+   */
+  public function initClasses($path, $namespace = null, $autoload = true) {
+    if($autoload) $this->autoload($path, $namespace);
+    foreach($this->files->find($path, ['extensions' => ['php']]) as $file) {
+      $info = $this->info($file);
+      $class = $info->filename;
+      if($namespace) $class = "\\$namespace\\$class";
+      $tmp = new $class();
+      if(method_exists($tmp, "init")) $tmp->init();
+    }
+  }
+
+  /**
+   * DEPRECATED - use initClasses() instead
    */
   public function initPageClass($data, $options = []) {
     $opt = $this->wire(new WireData()); /** @var WireData $opt */
@@ -414,11 +441,22 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * Call ready() of pageclass if it exists
-   *
-   * See initPageClass() for docs.
-   *
+   * Trigger ready() method of classes in this folder
+   * This will NOT load the classes - use autoload() or initClasses() before
    * @return void
+   */
+  public function readyClasses($path, $namespace = null) {
+    foreach($this->files->find($path, ['extensions' => ['php']]) as $file) {
+      $info = $this->info($file);
+      $class = $info->filename;
+      if($namespace) $class = "\\$namespace\\$class";
+      $tmp = new $class();
+      if(method_exists($tmp, "ready")) $tmp->ready();
+    }
+  }
+
+  /**
+   * DEPRECATED - use initClasses() instead
    */
   public function readyPageClass($data) {
     $this->initPageClass($data, 'ready');
@@ -1169,8 +1207,9 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function addTemplateAccess($tpl, $role, $acc) {
-      $tpl = $this->getTemplate($tpl);
       $role = $this->getRole($role);
+      if(!$role->id) return;
+      $tpl = $this->getTemplate($tpl);
       $tpl->addRole($role, $acc);
       $tpl->save();
     }
@@ -1263,8 +1302,10 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function removeTemplateAccess($tpl, $role) {
+      $role = $this->getRole($role);
+      if(!$role->id) return;
       $tpl = $this->getTemplate($tpl);
-      $tpl->removeRole($this->getRole($role), "all");
+      $tpl->removeRole($role, "all");
       $tpl->save();
     }
 
@@ -2070,7 +2111,7 @@ class RockMigrations extends WireData implements Module {
   }
 
   /**
-   * Load classes in given folder
+   * DEPRECATED - use initClasses() instead
    */
   public function loadClasses($dir, $namespace = null) {
     foreach($this->files->find($dir, ['extensions' => ['php']]) as $file) {
