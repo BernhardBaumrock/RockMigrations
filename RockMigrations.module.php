@@ -1965,10 +1965,12 @@ class RockMigrations extends WireData implements Module {
      * @param string $name
      * @return void
      */
-    public function deleteModule($name) {
+    public function deleteModule($name, $path = null) {
       $module = $this->wire->modules->get($name);
-      $path = $this->wire->config->paths($module);
-      if(!$path) $path = $this->wire->config->paths->siteModules.$name;
+      if(!$path) {
+        $path = $this->wire->config->paths($module);
+        if(!$path) $path = $this->wire->config->paths->siteModules.$name;
+      }
       if(!is_dir($path)) return;
       $this->files->rmdir($path, true);
       $this->wire->database->exec("DELETE FROM modules WHERE class = '$name'");
