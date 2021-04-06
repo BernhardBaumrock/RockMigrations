@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.51',
+      'version' => '0.0.52',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1255,7 +1255,7 @@ class RockMigrations extends WireData implements Module {
      * @return void
      */
     public function deleteTemplate($tpl) {
-      $template = $this->getTemplate($tpl);
+      $template = $this->getTemplate($tpl, false);
       if(!$template OR !$template->id) return;
 
       // remove all pages having this template
