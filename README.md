@@ -80,6 +80,29 @@ public function migrateDatapages() {
 }
 ```
 
+## Field migrations
+
+### Examples
+
+Options field
+
+```php
+$rm->migrate([
+  'fields' => [
+    'yourfield' => [
+      'type' => 'options',
+      'tags' => "YourTags",
+      'label' => 'Options example',
+      'options' => [
+        1 => 'ONE',
+        2 => 'TWO',
+        3 => 'THREE',
+      ],
+    ],
+  ],
+]);
+```
+
 ## Common ProcessWire Helpers
 
 ### Load files on demand from remote to local development
