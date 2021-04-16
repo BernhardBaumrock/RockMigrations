@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.52',
+      'version' => '0.0.53',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -63,7 +63,7 @@ class RockMigrations extends WireData implements Module {
   /**
    * Register autoloader for all classes in given folder
    * This will NOT trigger init() or ready()
-   * Use $rm->initClasses() AFTER autoload() if you also want to trigger init()
+   * You can also use $rm->initClasses() with setting autoload=true
    */
   public function autoload($path, $namespace) {
     $path = Paths::normalizeSeparators($path);

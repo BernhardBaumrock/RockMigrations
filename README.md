@@ -84,6 +84,38 @@ public function migrateDatapages() {
 
 ### Examples
 
+CKEditor field
+
+```php
+$rm->migrate([
+  'fields' => [
+    'yourckefield' => [
+      'type' => 'InputfieldCKEditor',
+      'label' => __('foo bar'),
+      'tags' => 'YourModule',
+      'inputfieldClass' => 'InputfieldCKEditor',
+      'contentType' => FieldtypeTextarea::contentTypeHTML,
+    ],
+  ],
+]);
+```
+
+Image field
+
+```php
+$rm->migrate([
+  'fields' => [
+    'yourimagefield' => [
+      'type' => 'image',
+      'tags' => 'YourTags',
+      'maxFiles' => 0,
+      'descriptionRows' => 1,
+      'extensions' => "PDF JPG PNG ZIP DOCX",
+    ],
+  ],
+]);
+```
+
 Options field
 
 ```php
@@ -91,7 +123,7 @@ $rm->migrate([
   'fields' => [
     'yourfield' => [
       'type' => 'options',
-      'tags' => "YourTags",
+      'tags' => 'YourTags',
       'label' => 'Options example',
       'options' => [
         1 => 'ONE',
@@ -113,4 +145,12 @@ This feature is now part of RockMigrations and setup is as easy as setting a con
 
 ```php
 $config->filesOnDemand = "https://www.example.com";
+```
+
+### Set german pagename replacements
+
+```php
+$rm->setModuleConfig("InputfieldPageName", [
+  'replacements' => "æ=ae\nå=a\nä=ae\nã=a\nß=ss\nö=oe\nü=ue\nđ=dj\nж=zh\nх=kh\nц=tc\nч=ch\nш=sh\nщ=shch\nю=iu\nя=ia\n:=-\n,=-\nà=a\ná=a\nâ=a\nè=e\né=e\në=e\nê=e\ně=e\nì=i\ní=i\nï=i\nî=i\nı=i\nİ=i\nğ=g\nõ=o\nò=o\nó=o\nô=o\nø=o\nù=u\nú=u\nû=u\nů=u\nñ=n\nç=c\nč=c\nć=c\nÇ=c\nď=d\nĺ=l\nľ=l\nń=n\nň=n\nŕ=r\nř=r\nš=s\nş=s\nŞ=s\nť=t\ný=y\nž=z\nа=a\nб=b\nв=v\nг=g\nд=d\nе=e\nё=e\nз=z\nи=i\nй=i\nк=k\nл=l\nм=m\nн=n\nо=o\nп=p\nр=r\nс=s\nт=t\nу=u\nф=f\nы=y\nэ=e\nę=e\ną=a\nś=s\nł=l\nż=z\nź=z",
+]);
 ```
