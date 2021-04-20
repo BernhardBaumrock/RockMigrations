@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.53',
+      'version' => '0.0.54',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -666,6 +666,11 @@ class RockMigrations extends WireData implements Module {
     public function createField($name, $typename, $options = null) {
       $field = $this->getField($name, false);
       if(!$field) {
+        // handle special cases
+        if(is_string($typename)) {
+          // type 'page' does not work because it tries to get the page module
+          if(strtolower($typename) === 'page') $typename = "FieldtypePage";
+        }
         // setup fieldtype
         $type = $this->modules->get($typename);
         if(!$type) {

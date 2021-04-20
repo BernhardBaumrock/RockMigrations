@@ -135,6 +135,23 @@ $rm->migrate([
 ]);
 ```
 
+Page Reference field
+
+```php
+$rm->migrate([
+  'fields' => [
+    'yourfield' => [
+      'type' => 'page',
+      'label' => __('Select a page'),
+      'tags' => 'YourModule',
+      'derefAsPage' => FieldtypePage::derefAsPageArray,
+      'inputfield' => 'InputfieldSelect',
+      'findPagesSelector' => 'foo=bar',
+      'labelFieldName' => 'title',
+    ],
+  ],
+]);
+
 ## Common ProcessWire Helpers
 
 ### Load files on demand from remote to local development
