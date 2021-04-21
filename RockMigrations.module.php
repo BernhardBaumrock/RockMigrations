@@ -1595,37 +1595,6 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Set page data via array
-     *
-     * Usage (set title of root page):
-     * $rm->setPageData("/", ['title' => 'foo']);
-     *
-     * @param Page $page
-     * @param array $data
-     * @return void
-     */
-    public function setPageData($page, $data) {
-      if(!$data) return;
-      $page = $this->wire->pages->get((string)$page);
-      if(!$page->id) return;
-      foreach($data as $k=>$v) $page->setAndSave($k, $v);
-    }
-
-    /**
-     * Enable all languages for given page
-     *
-     * @param Page|string $page
-     * @return void
-     */
-    public function enableAllLanguagesForPage($page) {
-      $page = $this->pages->get((string)$page);
-      if($this->languages) {
-        foreach($this->languages as $lang) $page->set("status$lang", 1);
-      }
-      $page->save();
-    }
-
-    /**
      * Delete the given page including all children.
      *
      * @param Page|string $page
@@ -1658,6 +1627,37 @@ class RockMigrations extends WireData implements Module {
     public function deletePages($selector) {
       $pages = $this->pages->find($selector);
       foreach($pages as $page) $this->deletePage($page);
+    }
+
+    /**
+     * Enable all languages for given page
+     *
+     * @param Page|string $page
+     * @return void
+     */
+    public function enableAllLanguagesForPage($page) {
+      $page = $this->pages->get((string)$page);
+      if($this->languages) {
+        foreach($this->languages as $lang) $page->set("status$lang", 1);
+      }
+      $page->save();
+    }
+
+    /**
+     * Set page data via array
+     *
+     * Usage (set title of root page):
+     * $rm->setPageData("/", ['title' => 'foo']);
+     *
+     * @param Page $page
+     * @param array $data
+     * @return void
+     */
+    public function setPageData($page, $data) {
+      if(!$data) return;
+      $page = $this->wire->pages->get((string)$page);
+      if(!$page->id) return;
+      foreach($data as $k=>$v) $page->setAndSave($k, $v);
     }
 
   /* ##### roles & permissions ##### */
