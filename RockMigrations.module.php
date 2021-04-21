@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.54',
+      'version' => '0.0.55',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -315,6 +315,14 @@ class RockMigrations extends WireData implements Module {
    */
   public function ___getMigrationsPath() {
     return $this->config->paths($this->module) . $this->className() . "/";
+  }
+
+  /**
+   * Get page from data
+   * @return Page
+   */
+  public function getPage($data) {
+    return $this->wire->pages->get((string)$data);
   }
 
   /**
@@ -1641,6 +1649,19 @@ class RockMigrations extends WireData implements Module {
         foreach($this->languages as $lang) $page->set("status$lang", 1);
       }
       $page->save();
+    }
+
+    /**
+     * Move one page on top of another one
+     * @return void
+     */
+    public function movePageBefore($page, $reference) {
+      $page = $this->getPage($page);
+      $ref = $this->getPage($reference);
+      if(!$page->id) throw new WireException("Page does not exist");
+      if(!$ref->id) throw new WireException("Reference does not exist");
+      if($page->parent !== $ref->parent) throw new WireException("Both pages must have the same parent");
+      $this->wire->pages->sort($page, $ref->sort);
     }
 
     /**
