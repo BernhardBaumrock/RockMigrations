@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.56',
+      'version' => '0.0.57',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -552,6 +552,37 @@ class RockMigrations extends WireData implements Module {
     // now we execute the upgrade
     $prev = @$migration->getPrev()->version;
     $this->executeUpgrade($prev, $version);
+  }
+
+  /**
+   * Wrap fields of a form into a fieldset
+   *
+   * Usage:
+   * $rm->wrapFields($form, ['foo', 'bar'], [
+   *   'label' => 'your fieldset label',
+   *   'icon' => 'bolt',
+   * ]);
+   *
+   * @return InputfieldFieldset
+   */
+  public function wrapFields(InputfieldWrapper $form, array $fields, array $fieldset) {
+    $_fields = [];
+    foreach($fields as $field) {
+      $_fields[] = $last = $form->get((string)$field);
+    }
+
+    /** @var InputfieldFieldset $f */
+    $fs = $this->wire('modules')->get('InputfieldFieldset');
+    foreach($fieldset as $k=>$v) $fs->$k = $v;
+    $form->insertAfter($fs, $last);
+
+    // now remove fields from the form and add them to the fieldset
+    foreach($_fields as $f) {
+      $form->remove($f);
+      $fs->add($f);
+    }
+
+    return $fs;
   }
 
   /* ##################### RockMigrations API Methods ##################### */
