@@ -152,6 +152,7 @@ $rm->migrate([
     ],
   ],
 ]);
+```
 
 ## Common ProcessWire Helpers
 
