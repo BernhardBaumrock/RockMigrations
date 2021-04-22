@@ -110,7 +110,8 @@ $rm->migrate([
       'tags' => 'YourTags',
       'maxFiles' => 0,
       'descriptionRows' => 1,
-      'extensions' => "PDF JPG PNG ZIP DOCX",
+      'extensions' => "pdf jpg png zip docx svg",
+      'okExtensions' => ['svg'],
     ],
   ],
 ]);
