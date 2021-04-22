@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.55',
+      'version' => '0.0.56',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1327,6 +1327,16 @@ class RockMigrations extends WireData implements Module {
     public function getRepeaterTemplate($field) {
       $field = $this->getField($field);
       return $this->templates->get($field->template_id);
+    }
+
+    /**
+     * Remove all template context field settings
+     * @return void
+     */
+    public function removeContext($tpl, $field) {
+      $tpl = $this->getTemplate($tpl);
+      $field = $this->getField($field);
+      $tpl->fieldgroup->setFieldContextArray($field->id, []);
     }
 
     /**
