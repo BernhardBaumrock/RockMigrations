@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.57',
+      'version' => '0.0.58',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -567,9 +567,15 @@ class RockMigrations extends WireData implements Module {
    */
   public function wrapFields(InputfieldWrapper $form, array $fields, array $fieldset) {
     $_fields = [];
+    $last = false;
     foreach($fields as $field) {
-      $_fields[] = $last = $form->get((string)$field);
+      $f = $form->get((string)$field);
+      if($f instanceof Inputfield) {
+        $_fields[] = $f;
+        $last = $f;
+      }
     }
+    if(!$last) return;
 
     /** @var InputfieldFieldset $f */
     $fs = $this->wire('modules')->get('InputfieldFieldset');
