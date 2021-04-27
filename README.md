@@ -112,6 +112,7 @@ $rm->migrate([
       'descriptionRows' => 1,
       'extensions' => "pdf jpg png zip docx svg",
       'okExtensions' => ['svg'],
+      'icon' => 'picture-o',
     ],
   ],
 ]);
