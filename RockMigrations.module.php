@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.58',
+      'version' => '0.0.59',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -422,8 +422,7 @@ class RockMigrations extends WireData implements Module {
    */
   public function loadFilesOnDemand() {
     if(!$host = $this->wire->config->filesOnDemand) return;
-    $hook = "Pagefile::url, Pagefile::filename";
-    $this->addHookAfter($hook, function(HookEvent $event) use($host) {
+    $hook = function(HookEvent $event) use($host) {
       $config = $this->wire->config;
       $file = $event->return;
 
@@ -445,7 +444,9 @@ class RockMigrations extends WireData implements Module {
           $this->error($th->getMessage());
         }
       }
-    });
+    };
+    $this->addHookAfter("Pagefile::url", $hook);
+    $this->addHookAfter("Pagefile::filename", $hook);
   }
 
   /**
