@@ -846,7 +846,7 @@ class RockMigrations extends WireData implements Module {
 
       // return field when found or no exception
       if($field) return $field;
-      if($exception === false) return;
+      if($exception === false) return false;
 
       // field was not found, throw exception
       if(!$exception) $exception = "Field $name not found";
