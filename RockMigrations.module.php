@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.61',
+      'version' => '0.0.62',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -837,7 +837,7 @@ class RockMigrations extends WireData implements Module {
      * @return mixed
      */
     public function getField($name, $exception = null) {
-      if (is_null($name) OR $name === '') return false; // return early if $name is null or an empty string
+      if(!$name) return false;
       if($name AND !is_string($name) AND !$name instanceof Field) {
         $func = @debug_backtrace()[1]['function'];
         throw new WireException("Invalid type set for field in $func");
