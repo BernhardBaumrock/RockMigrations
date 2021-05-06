@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.60',
+      'version' => '0.0.61',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1477,13 +1477,14 @@ class RockMigrations extends WireData implements Module {
     public function setTemplateData($template, $data) {
       $template = $this->templates->get((string)$template);
       if(!$template) throw new WireException("template not found!");
-      foreach($data as $k=>$v) {
-        if(($k === 'fields' || $k === 'fields-') AND is_array($v)) {
+      foreach($data as $k=>$fields) {
+        if(($k === 'fields' || $k === 'fields-') AND is_array($fields)) {
           // set fields of template but dont remove non-mentioned fields
-          $this->setTemplateFields($template, $v,  $k === 'fields-');
+          $removeOthers = $k==='fields-';
+          $this->setTemplateFields($template, $fields, $removeOthers);
           continue;
         }
-        $template->{$k} = $v;
+        $template->{$k} = $fields;
       }
       $template->save();
       return $template;
