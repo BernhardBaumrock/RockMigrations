@@ -1477,14 +1477,15 @@ class RockMigrations extends WireData implements Module {
     public function setTemplateData($template, $data) {
       $template = $this->templates->get((string)$template);
       if(!$template) throw new WireException("template not found!");
-      foreach($data as $k=>$fields) {
-        if(($k === 'fields' || $k === 'fields-') AND is_array($fields)) {
-          // set fields of template but dont remove non-mentioned fields
+      foreach($data as $k=>$v) {
+        if(($k === 'fields' || $k === 'fields-') AND is_array($v)) {
+          // if the key is 'fields' we set the fields
+          // if the key is 'fields-' we set fields and remove others
           $removeOthers = $k==='fields-';
-          $this->setTemplateFields($template, $fields, $removeOthers);
+          $this->setTemplateFields($template, $v, $removeOthers);
           continue;
         }
-        $template->{$k} = $fields;
+        $template->{$k} = $v;
       }
       $template->save();
       return $template;
