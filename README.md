@@ -72,7 +72,17 @@ $rm->deleteTemplate("ready_blogitem");
 
 Congratulations!! You just finished your very first migration to create fields, templates and pages and to remove them. 🥳😎
 
-**Now that you took your first steps with RockMigrations you are ready to try the Blog-Example in the examples folder. Just copy it to your `/site/modules` folder, install it and inspect its code and all it's comments inside the file!**
+The easiest way of preventing the migrations to run on every page load is to wrap the migrations inside a `fireOnRefresh()` method:
+
+```php
+/** @var RockMigrations $rm */
+$rm = $this->wire('modules')->get('RockMigrations');
+$rm->fireOnRefresh(function() use($rm) {
+  // your migrations here
+});
+```
+
+For more complex scenarios you can place your migrations in ProcessWire modules. See the Blog-Example in the examples folder. Just copy it to your `/site/modules` folder, install it and inspect its code and all it's comments inside the file!
 
 PS: Did you realize the typo in the migration?? If not, that's the best proof why it makes so much sense to use class constants for all your migrations ;)
 
