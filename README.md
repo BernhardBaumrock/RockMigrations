@@ -74,6 +74,8 @@ $rm->deleteTemplate("ready_blogitem");
 
 PS: Did you realize the typo in the migration?? If not, that's the best proof why it makes so much sense to use class constants for all your migrations ;)
 
+![img](https://i.imgur.com/QVFsJUI.png)
+
 PPS: Some examples of outdated techniques I'm not using any more are in the old readme file: https://github.com/BernhardBaumrock/RockMigrations/blob/fdd763485ca572d45143067d4966d9f49c572a95/README.md
 
 ## Access Control
