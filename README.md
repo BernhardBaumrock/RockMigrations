@@ -79,6 +79,8 @@ The easiest way of preventing the migrations to run on every page load is to wra
 $rm = $this->wire('modules')->get('RockMigrations');
 $rm->fireOnRefresh(function() use($rm) {
   // your migrations here
+  $rm->migrate(...);
+  $rm->createField(...);
 });
 ```
 
