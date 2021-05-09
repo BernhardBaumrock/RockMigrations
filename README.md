@@ -72,7 +72,7 @@ $rm->deleteTemplate("ready_blogitem");
 
 Congratulations!! You just finished your very first migration to create fields, templates and pages and to remove them. 🥳😎
 
-The easiest way of preventing the migrations to run on every page load is to wrap the migrations inside a `fireOnRefresh()` method:
+The easiest way of preventing the migrations to run on every page load is to wrap them inside a `fireOnRefresh()` method:
 
 ```php
 /** @var RockMigrations $rm */
