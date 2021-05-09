@@ -84,7 +84,7 @@ $rm->fireOnRefresh(function() use($rm) {
 });
 ```
 
-For more complex scenarios you can place your migrations in ProcessWire modules. See the Blog-Example in the examples folder. Just copy it to your `/site/modules` folder, install it and inspect its code and all it's comments inside the file!
+For more complex scenarios you can place your migrations in ProcessWire modules. See the Blog-Example in the examples folder. Just copy it to your `/site/modules` folder, install it and inspect its code and all it's comments inside the file! https://github.com/BernhardBaumrock/RockMigrations/blob/master/examples/MigrationsExample.module.php
 
 PS: Did you realize the typo in the migration?? If not, that's the best proof why it makes so much sense to use class constants for all your migrations ;)
 
