@@ -20,6 +20,60 @@ If you are using RockMigrations I'm happy to hear about that: https://processwir
 
 ---
 
+## Quickstart
+
+Just copy this to your `/site/ready.php` and see the magic of RockMigrations:
+
+```php
+/** @var RockMigrations $rm */
+$rm = $this->wire('modules')->get('RockMigrations');
+$rm->migrate([
+  'fields' => [
+    'ready_text' => [
+      'type' => 'textarea',
+      'tags' => 'ReadyDemo',
+    ],
+  ],
+  'templates' => [
+    'ready_blog' => [
+      'tags' => 'ReadyDemo',
+      'fields' => ['title'],
+    ],
+    'ready_blogitem' => [
+      'tags' => 'RaedyDemo',
+      'fields' => [
+        'title',
+        'ready_text',
+      ],
+    ],
+  ],
+]);
+$parent = $rm->createPage("Ready blog demo", "ready-blog", "ready_blog", 1);
+$rm->createPage("Blog entry ".date("Y-m-d H:i:s"), null, "ready_blogitem", $parent);
+```
+
+You should get IntelliSense by your IDE to make working with RockMigrations really easy:
+
+![img](https://i.imgur.com/KOx7sWi.png)
+
+This will fire the migrations on every page load which is of course not the way to go, but I hope this makes it as easy as possible to get started with migrations and let's you get the idea of the power of using migrations for all kinds of site development!
+
+![img](https://i.imgur.com/4XnJVKr.png)
+
+Now let us remove all fields and templates that we just created. Remove the migrations that CREATE everything and replace the code by this:
+
+```php
+/** @var RockMigrations $rm */
+$rm = $this->wire('modules')->get('RockMigrations');
+$rm->deleteField("ready_text");
+$rm->deleteTemplate("ready_blog");
+$rm->deleteTemplate("ready_blogitem");
+```
+
+Now that you took your first steps with RockMigrations you are ready to try the Blog-Example in the examples folder. Just copy it to your `/site/modules` folder, install it and inspect its code and all it's comments inside the file!
+
+PS: Did you realize the typo in the migration?? If not, that's the best proof why it makes so much sense to use class constants for all your migrations ;)
+
 ## Usage
 
 ![img](https://i.imgur.com/okYjsWz.gif)
@@ -90,7 +144,7 @@ CKEditor field
 $rm->migrate([
   'fields' => [
     'yourckefield' => [
-      'type' => 'InputfieldCKEditor',
+      'type' => 'textarea',
       'label' => __('foo bar'),
       'tags' => 'YourModule',
       'inputfieldClass' => 'InputfieldCKEditor',
