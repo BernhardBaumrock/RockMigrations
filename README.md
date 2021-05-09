@@ -70,17 +70,11 @@ $rm->deleteTemplate("ready_blog");
 $rm->deleteTemplate("ready_blogitem");
 ```
 
-Now that you took your first steps with RockMigrations you are ready to try the Blog-Example in the examples folder. Just copy it to your `/site/modules` folder, install it and inspect its code and all it's comments inside the file!
+**Now that you took your first steps with RockMigrations you are ready to try the Blog-Example in the examples folder. Just copy it to your `/site/modules` folder, install it and inspect its code and all it's comments inside the file!**
 
 PS: Did you realize the typo in the migration?? If not, that's the best proof why it makes so much sense to use class constants for all your migrations ;)
 
-## Usage
-
-![img](https://i.imgur.com/okYjsWz.gif)
-
-**Please copy the file `MigrationsExample.module.php` to `site/modules` and install it to see an example of how I'm mostly using RockMigrations at the moment: https://github.com/BernhardBaumrock/RockMigrations/blob/master/examples/MigrationsExample.module.php**
-
-Some examples of outdated techniques I'm not using any more are in the old readme file: https://github.com/BernhardBaumrock/RockMigrations/blob/fdd763485ca572d45143067d4966d9f49c572a95/README.md
+PPS: Some examples of outdated techniques I'm not using any more are in the old readme file: https://github.com/BernhardBaumrock/RockMigrations/blob/fdd763485ca572d45143067d4966d9f49c572a95/README.md
 
 ## Access Control
 
