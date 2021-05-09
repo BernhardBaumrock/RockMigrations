@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.62',
+      'version' => '0.0.63',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -2164,6 +2164,35 @@ class RockMigrations extends WireData implements Module {
       }
 
       return $field;
+    }
+
+    /**
+     * Set page name replacements as array or by filename
+     *
+     * This will update the 'replacements' setting of InputfieldPageName module
+     *
+     * Usage: $rm->setPagenameReplacements("de");
+     * Usage: $rm->setPagenameReplacements(['ä'=>'ae']);
+     *
+     * @param mixed $data
+     * @return void
+     */
+    public function setPagenameReplacements($data) {
+      if(is_string($data)) {
+        $file = __DIR__."/replacements/$data.txt";
+        if(!is_file($file)) {
+          return $this->log("File $file not found");
+        }
+        $replacements = explode("\n", $this->wire->files->render($file));
+        $arr = [];
+        foreach($replacements as $row) {
+          $items = explode("=", $row);
+          $arr[$items[0]] = $items[1];
+        }
+      }
+      elseif(is_array($data)) $arr = $data;
+      if(!is_array($arr)) return;
+      $this->setModuleConfig("InputfieldPageName", ['replacements' => $arr]);
     }
 
   /* ##### config file support ##### */
