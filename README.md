@@ -192,7 +192,7 @@ $rm->migrate([
       'tags' => 'YourTags',
       'label' => 'Options example',
       'options' => [
-        1 => 'ONE',
+        1 => 'ONE|This is option one',
         2 => 'TWO',
         3 => 'THREE',
       ],
