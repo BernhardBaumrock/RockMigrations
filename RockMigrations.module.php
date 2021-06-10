@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.63',
+      'version' => '0.0.64',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1805,6 +1805,17 @@ class RockMigrations extends WireData implements Module {
       foreach($permissions as $permission) $this->addPermissionToRole($permission, $role);
 
       return $role;
+    }
+
+    /**
+     * Create view file for template (if it does not exist already)
+     * @return void
+     */
+    public function createViewFile($template, $content = "\n") {
+      $template = $this->getTemplate($template);
+      $file = $this->wire->config->paths->templates.$template->name.".php";
+      if(is_file($content)) $content = file_get_contents($content);
+      if(!is_file($file)) $this->wire->files->filePutContents($file, $content);
     }
 
     /**
