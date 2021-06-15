@@ -2159,10 +2159,11 @@ class RockMigrations extends WireData implements Module {
      */
     private function resetMatrixRepeaterFields(Field $field) {
       $ids = [$this->fields->get('repeater_matrix_type')->id];
-      $n = 1;
-      while(array_key_exists("matrix{$n}_name", $field->getArray())) {
-        $ids = array_merge($ids, $field->get("matrix{$n}_fields") ?: []);
-        $n++;
+      //enumerate only existing fields
+      $keys = array_keys($field->getArray());
+      $items = preg_grep("/matrix(\d+)_fields/", $keys);
+      foreach($items as $item) {
+        $ids = array_merge($ids, $field->get($item) ?: []);
       }
       $field->set('repeaterFields', $ids);
 
