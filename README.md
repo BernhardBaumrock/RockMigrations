@@ -177,6 +177,7 @@ $rm->migrate([
       'extensions' => "pdf jpg png zip docx svg",
       'okExtensions' => ['svg'],
       'icon' => 'picture-o',
+      'outputFormat' => FieldtypeFile::outputFormatSingle,
     ],
   ],
 ]);
