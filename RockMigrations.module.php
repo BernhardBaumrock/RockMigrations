@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.64',
+      'version' => '0.0.65',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1816,6 +1816,49 @@ class RockMigrations extends WireData implements Module {
       $file = $this->wire->config->paths->templates.$template->name.".php";
       if(is_file($content)) $content = file_get_contents($content);
       if(!is_file($file)) $this->wire->files->filePutContents($file, $content);
+    }
+
+    /**
+     * Create webmaster user + role
+     *
+     * Usage:
+     * $rm->createWebmaster("johndoe", [
+     *   // null = random password that will be shown in notice
+     *   'password' => 'foobar',
+     *
+     *   // template permissions
+     *   'templates' => [
+     *     'home' => ["view", "edit", "add"],
+     *     'basic-page' => ["view", "edit", "create", "add"],
+     *   ],
+     * ]);
+     */
+    public function createWebmaster($name, $options = []) {
+      $opt = $this->wire(new WireData()); /** @var WireData $opt */
+      $opt->setArray([
+        'password' => null,
+        'templates' => [],
+        'theme' => 'AdminThemeUikit',
+      ]);
+      $opt->setArray($options);
+
+      // create role
+      $role = $this->createRole("webmaster", ['page-edit']);
+
+      // create user
+      $user = $this->wire->users->get("name=$name");
+      if(!$user->id) {
+        $rand = new WireRandom();
+        $pass = $rand->alphanumeric(0, ['minLength'=>10, 'maxLength'=>15]);
+        $user = $this->createUser($name, $pass, $opt->theme);
+        $this->message("created user $name and set password $pass");
+      }
+      $this->addRoleToUser($role, $user);
+
+      // set template access
+      foreach($opt->templates as $tpl=>$permissions) {
+        $this->setTemplateAccess($tpl, $role, $permissions);
+      }
     }
 
     /**
