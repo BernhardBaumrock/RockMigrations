@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.65',
+      'version' => '0.0.66',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -425,6 +425,9 @@ class RockMigrations extends WireData implements Module {
     $hook = function(HookEvent $event) use($host) {
       $config = $this->wire->config;
       $file = $event->return;
+
+      // this makes it possible to prevent downloading at runtime
+      if(!$this->wire->config->filesOnDemand) return;
 
       // convert url to disk path
       if($event->method == 'url') {
@@ -1659,6 +1662,12 @@ class RockMigrations extends WireData implements Module {
       $page = $this->pages->get((string)$page);
       if(!$page->id) return;
 
+      // temporarily disable filesOnDemand feature
+      // this prevents PW from downloading files that are deleted from a local dev
+      // system but only exist on the live system
+      $ondemand = $this->wire->config->filesOnDemand;
+      $this->wire->config->filesOnDemand = false;
+
       // make sure we can delete the page and delete it
       // we also need to make sure that all descendants of this page are deletable
       // todo: make this recursive?
@@ -1671,6 +1680,8 @@ class RockMigrations extends WireData implements Module {
         $p->save();
       }
       $this->pages->delete($page, true);
+
+      $this->wire->config->filesOnDemand = $ondemand;
     }
 
     /**
