@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.66',
+      'version' => '0.0.67',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -2024,16 +2024,30 @@ class RockMigrations extends WireData implements Module {
     /**
      * Set module config data
      *
+     * By default this will remember old settings and only set the ones that are
+     * specified as $data parameter. If you want to reset old parameters
+     * set the $reset param to true.
+     *
      * @param string|Module $module
      * @param array $data
+     * @param bool $merge
      * @return Module|false
      */
-    public function setModuleConfig($module, $data) {
+    public function setModuleConfig($module, $data, $reset = false) {
+      /** @var Module $module */
       $module = $this->modules->get((string)$module);
       if(!$module) {
         if($this->config->debug) throw new WireException("Module not found!");
         else return false;
       }
+
+      // now we merge the new config data over the old config
+      // if reset is TRUE we skip this step which means we may lose old config!
+      if(!$reset) {
+        $old = $this->wire->modules->getConfig($module);
+        $data = array_merge($old, $data);
+      }
+
       $this->modules->saveConfig($module, $data);
       return $module;
     }
