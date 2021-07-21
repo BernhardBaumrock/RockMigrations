@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.68',
+      'version' => '0.0.69',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1856,7 +1856,12 @@ class RockMigrations extends WireData implements Module {
       $opt->setArray($options);
 
       // create role
-      $role = $this->createRole("webmaster", ['page-edit']);
+      $role = $this->createRole("webmaster", [
+        'page-edit',
+        'page-delete',
+        'page-move',
+        'page-sort',
+      ]);
 
       // create user
       $user = $this->wire->users->get("name=$name");
