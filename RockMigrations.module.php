@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.67',
+      'version' => '0.0.68',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -606,10 +606,11 @@ class RockMigrations extends WireData implements Module {
      * @param Template|string $template
      * @return void
      */
-    public function addFieldToTemplate($field, $template, $afterfield = null, $beforefield = null) {
-      $field = $this->getField($field);
-      $template = $this->getTemplate($template, false);
-      if(!$template) return;
+    public function addFieldToTemplate($_field, $_template, $afterfield = null, $beforefield = null) {
+      $field = $this->getField($_field, false);
+      if(!$field) return $this->log("Field $_field not found");
+      $template = $this->getTemplate($_template, false);
+      if(!$template) return $this->log("Template $_template not found");
 
       $afterfield = $this->getField($afterfield, false);
       $beforefield = $this->getField($beforefield, false);
@@ -966,8 +967,9 @@ class RockMigrations extends WireData implements Module {
      * @param Template|array|string $template
      * @return void
      */
-    public function setFieldData($field, $data, $template = null) {
-      $field = $this->getField($field);
+    public function setFieldData($_field, $data, $template = null) {
+      $field = $this->getField($_field, false);
+      if(!$field) return $this->log("Field $_field not found");
 
       // prepare data array
       foreach($data as $key=>$val) {
