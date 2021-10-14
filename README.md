@@ -178,6 +178,7 @@ $rm->migrate([
       'okExtensions' => ['svg'],
       'icon' => 'picture-o',
       'outputFormat' => FieldtypeFile::outputFormatSingle,
+      'maxSize' => 3, // max 3 megapixels
     ],
   ],
 ]);
