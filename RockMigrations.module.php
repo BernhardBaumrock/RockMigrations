@@ -1675,7 +1675,7 @@ class RockMigrations extends WireData implements Module {
       // todo: make this recursive?
       $all = $this->wire(new PageArray());
       $all->add($page);
-      $all->add($this->pages->find("has_parent=$page"));
+      $all->add($this->pages->find("has_parent=$page, include=all"));
       foreach($all as $p) {
         $p->addStatus(Page::statusSystemOverride);
         $p->status = 1;
