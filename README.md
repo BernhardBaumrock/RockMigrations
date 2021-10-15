@@ -221,6 +221,23 @@ $rm->migrate([
 ]);
 ```
 
+Date field
+
+```php
+$rm->migrate([
+  'fields' => [
+    'yourfield' => [
+      'type' => 'datetime',
+      'label' => __('Enter date'),
+      'tags' => 'YourModule',
+      'dateInputFormat' => 'j.n.y',
+      'datepicker' => InputfieldDatetime::datepickerFocus,
+      'defaultToday' => 1,
+    ],
+  ],
+]);
+```
+
 ## Common ProcessWire Helpers
 
 ### Load files on demand from remote to local development
