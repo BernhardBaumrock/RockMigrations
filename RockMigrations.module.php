@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.69',
+      'version' => '0.0.70',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -2149,7 +2149,86 @@ class RockMigrations extends WireData implements Module {
       if(is_dir($path)) $this->files->rmdir($path, true);
     }
 
-  /* ##### helpers ##### */
+    /* ##### languages ##### */
+
+      /**
+       * Adds new language if it doesn't exists yet. Also installs language support if missing
+       *
+       * @param string $languageName of new language
+       * @param string $languageTitle (optional)
+       *
+       * @return Language $newLang that was created
+       */
+      public function addNewLanguage(string $languageName, string $languageTitle = null) {
+        // Make sure Language Support is installed
+        $this->modules->get('LanguageSupport');
+        $newLang = $this->languages->get($languageName);
+        if(!$newLang->id) {
+          $newLang = $this->languages->add($languageName);
+          $this->languages->reloadLanguages();
+        }
+        if($languageTitle) {
+          $newLang->title = $languageTitle;
+          $newLang->save('title');
+        }
+        return $newLang;
+      }
+
+      /**
+       * Set core translations from zip file to a language. Removes old translations if any.
+       *
+       * <code>
+       * $rm->setTranslationsToLanguage("https://github.com/jmartsch/pw-lang-de/archive/refs/heads/main.zip", "german");
+       * </code>
+       *
+       * @param string $urlToTranslationsZip public url to zip file containing translation json files
+       * @param string $languageName that is updated
+       *
+       * @return Language $language
+       */
+      public function setTranslationsToLanguage(string $urlToTranslationsZip, string $languageName = "default") {
+        // Make sure Language Support is installed
+        $this->modules->get('LanguageSupport');
+        $language = $this->languages->get($languageName);
+        if (!$language->id) throw new WireException("Language does not exists.");
+        $http = new WireHttp();
+
+        // Download zip to cache folder for unzipping
+        $zipTemp = $this->config->paths->cache . $languageName . "_temp.zip";
+        $http->download($urlToTranslationsZip, $zipTemp);
+
+        // Unzip files and add .json files to language
+        $items = $this->files->unzip($zipTemp, $this->config->paths->cache);
+        if(count($items)) {
+          // Delete all old files first
+          $language->language_files->deleteAll();
+          $language->save();
+          foreach($items as $item) {
+            if(strpos($item, ".json") === false) continue;
+            $language->language_files->add($this->config->paths->cache . $item);
+          }
+        }
+        $language->save();
+
+        return $language;
+      }
+
+      /**
+       * Deletes a language
+       * @param string $languageName
+       * @return void
+       */
+      public function deleteLanguage(string $languageName) {
+        if($languageName == "default") {
+          // Not sure if this should be allowed?
+          throw new WireException("You cannot delete default language.");
+        }
+        $language = $this->languages->get($languageName);
+        if (!$language->name) return;
+        $this->languages->delete($language);
+      }
+
+    /* ##### helpers ##### */
 
     /**
      * Fire the callback if the version upgrading to ($to) is higher or equal
