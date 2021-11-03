@@ -184,6 +184,24 @@ $rm->migrate([
 ]);
 ```
 
+Files field
+
+```php
+$rm->migrate([
+  'fields' => [
+    'yourfilefield' => [
+      'type' => 'file',
+      'tags' => 'YourTags',
+      'maxFiles' => 1,
+      'descriptionRows' => 0,
+      'extensions' => "pdf",
+      'icon' => 'file-o',
+      'outputFormat' => FieldtypeFile::outputFormatSingle,
+    ],
+  ],
+]);
+```
+
 Options field
 
 ```php
