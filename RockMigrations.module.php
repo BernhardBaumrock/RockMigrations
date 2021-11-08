@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.70',
+      'version' => '0.0.71',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -644,14 +644,16 @@ class RockMigrations extends WireData implements Module {
      *
      * @param array $fields
      * @param string $template
+     * @param bool $sortFields
      * @return void
      */
-    public function addFieldsToTemplate($fields, $template) {
+    public function addFieldsToTemplate($fields, $template, $sortFields = false) {
       foreach($fields as $k=>$v) {
         // if the key is an integer, it's a simple field
         if(is_int($k)) $this->addFieldToTemplate((string)$v, $template);
         else $this->addFieldToTemplate((string)$k, $template, $v);
       }
+      if($sortFields) $this->setFieldOrder($fields, $template);
     }
 
     /**
