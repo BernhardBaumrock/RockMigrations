@@ -1478,11 +1478,15 @@ class RockMigrations extends WireData implements Module {
      *   'label1021' => 'bar', // other language
      * ]);
      *
-     * @param Template|string $template
+     * You can also provide a page:
+     * $rm->setTemplateData($myPage, ...);
+     *
+     * @param Template|Page|string $template
      * @param array $data
      * @return Template
      */
     public function setTemplateData($template, $data) {
+      if($template instanceof Page) $template = $template->template;
       $template = $this->templates->get((string)$template);
       if(!$template) throw new WireException("template not found!");
       foreach($data as $k=>$v) {
