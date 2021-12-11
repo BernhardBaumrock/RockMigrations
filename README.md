@@ -127,8 +127,8 @@ $rm->migrate([
       'repeaterFields' => [
         // you can set field data in repeater context like this:
         'title' => ['required'=>0],
-        'foo_field',
-        'bar_field',
+        'foo_field' => ['columnWidth'=>50],
+        'bar_field' => ['columnWidth'=>50],
       ],
     ],
   ],
