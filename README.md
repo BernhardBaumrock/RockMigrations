@@ -28,16 +28,27 @@ Just copy this to your `/site/ready.php` and see the magic of RockMigrations:
 /** @var RockMigrations $rm */
 $rm = $this->wire('modules')->get('RockMigrations');
 $rm->migrate([
+  // fields to create
   'fields' => [
     'ready_text' => [
       'type' => 'textarea',
       'tags' => 'ReadyDemo',
     ],
+    'context_example' => [
+      'type' => 'text',
+      'label' => 'Global field label',
+    ],
   ],
+  // templates to create
   'templates' => [
     'ready_blog' => [
       'tags' => 'ReadyDemo',
-      'fields' => ['title'],
+      'fields' => [
+        'title',
+        'context_example' => [
+          'label' => 'Field label on ready_blog template',
+        ],
+      ],
     ],
     'ready_blogitem' => [
       'tags' => 'RaedyDemo',
@@ -91,6 +102,37 @@ PS: Did you realize the typo in the migration?? If not, that's the best proof wh
 ![img](https://i.imgur.com/QVFsJUI.png)
 
 PPS: Some examples of outdated techniques I'm not using any more are in the old readme file: https://github.com/BernhardBaumrock/RockMigrations/blob/fdd763485ca572d45143067d4966d9f49c572a95/README.md
+
+## Conventions
+
+Please make sure to use field and template names without dashes:
+
+```php
+// this is good
+$rm->createField('my_field', ...);
+
+// this is BAD!
+$rm->createField('my-field', ...);
+```
+
+## Repeaters
+
+```php
+$rm->migrate([
+  'fields' => [
+    'foo_field' => [...],
+    'bar_field' => [...],
+    'my_repeater_field' => [
+      'type' => 'repeater',
+      'repeaterFields' => [
+        // you can set field data in repeater context like this:
+        'title' => ['required'=>0],
+        'foo_field',
+        'bar_field',
+      ],
+    ],
+  ],
+]);
 
 ## Access Control
 
