@@ -133,6 +133,7 @@ $rm->migrate([
     ],
   ],
 ]);
+```
 
 ## Access Control
 
