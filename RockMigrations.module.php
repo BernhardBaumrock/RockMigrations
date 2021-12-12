@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.72',
+      'version' => '0.0.73',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1004,7 +1004,7 @@ class RockMigrations extends WireData implements Module {
             $addFields[$index] = $this->fields->get((string)$fieldname)->id;
             $index++;
           }
-          $data[$key] = $fields;
+          $data[$key] = $addFields;
 
           // add fields to repeater template
           if($tpl = $this->getRepeaterTemplate($field)) {
