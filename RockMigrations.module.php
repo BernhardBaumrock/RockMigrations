@@ -2500,7 +2500,9 @@ class RockMigrations extends WireData implements Module {
 
     // setup pages
     foreach($config->pages as $name=>$data) {
-      if(is_int($name)) {
+      if(isset($data['name'])) {
+        $name = $data['name'];
+      } elseif(is_int($name)) {
         // no name provided
         $name = uniqid();
       }
