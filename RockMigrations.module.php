@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.73',
+      'version' => '0.0.74',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1284,16 +1284,24 @@ class RockMigrations extends WireData implements Module {
 
     /**
      * Add given access to given template for given role
-     * Example:
+     *
+     * Example for single template:
      * $rm->addTemplateAccess("my-template", "my-role", "edit");
+     *
+     * Example for multiple templates:
+     * $rm->addTemplateAccess(['home', 'basic-page'], "guest", "view");
+     *
      * @return void
      */
-    public function addTemplateAccess($tpl, $role, $acc) {
+    public function addTemplateAccess($templates, $role, $acc) {
       $role = $this->getRole($role);
       if(!$role->id) return;
-      $tpl = $this->getTemplate($tpl);
-      $tpl->addRole($role, $acc);
-      $tpl->save();
+      if(!is_array($templates)) $templates = [$templates];
+      foreach($templates as $tpl) {
+        $tpl = $this->getTemplate($tpl);
+        $tpl->addRole($role, $acc);
+        $tpl->save();
+      }
     }
 
     /**
