@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.74',
+      'version' => '0.0.75',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -472,6 +472,29 @@ class RockMigrations extends WireData implements Module {
    */
   public function readyPageClass($data) {
     $this->initPageClass($data, 'ready');
+  }
+
+  /**
+   * Set default options for several things in PW
+   */
+  public function setDefaults($options = []) {
+    $opt = $this->wire(new WireData()); /** @var WireData $opt */
+    $opt->setArray([
+      'pagenameReplacements' => 'de',
+      'toggleBehavior' => 1,
+    ]);
+    $opt->setArray($options);
+
+    // set german pagename replacements
+    $this->setPagenameReplacements($opt->pagenameReplacements);
+
+    // AdminThemeUikit settings
+    $this->setModuleConfig("AdminThemeUikit", [
+      // use consistent inputfield clicks
+      // see https://github.com/processwire/processwire/pull/169
+      'toggleBehavior' => $opt->toggle,
+    ]);
+
   }
 
   /**
@@ -2181,6 +2204,42 @@ class RockMigrations extends WireData implements Module {
     }
 
     /* ##### languages ##### */
+
+      /**
+       * Add language and install company modules (fields/pagenames/tabs)
+       * This will also set the url prefix for the installed language:
+       * example.com/en/your-page-title
+       */
+      public function addLanguage($name, $title, $options = []) {
+        $opt = $this->wire(new WireData()); /** @var WireData $opt */
+        $opt->setArray([
+          'fields' => true,
+          'pageNames' => true,
+          'tabs' => true,
+
+          // url-prefix part for this language
+          // (set on root pages' settings tab)
+          // use true to set pageName from language name
+          'pageName' => true,
+
+          // convert title field to language field?
+          'titleField' => true,
+        ]);
+
+        $lang = $this->addNewLanguage($name, $title);
+        if($opt->fields) $this->installModule("LanguageSupportFields");
+        if($opt->tabs) $this->installModule("LanguageTabs");
+        if($opt->titleField) $this->setFieldData('title', ['type' => 'TextLanguage']);
+        if($opt->pageNames) $this->installModule("LanguageSupportPageNames");
+
+        // set the url part of the new language on root page
+        // i've tried several options of setting the page name via api but had
+        // no luck! the only way to make that work was using custom sql
+        if($opt->pageName !== false) {
+          if($opt->pageName === true) $opt->pageName = $lang->name;
+          $this->database->query("UPDATE `pages` SET `name$lang` = '{$opt->pageName}' WHERE `id` = '1'");
+        }
+      }
 
       /**
        * Adds new language if it doesn't exists yet. Also installs language support if missing
