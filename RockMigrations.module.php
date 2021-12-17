@@ -492,7 +492,7 @@ class RockMigrations extends WireData implements Module {
     $this->setModuleConfig("AdminThemeUikit", [
       // use consistent inputfield clicks
       // see https://github.com/processwire/processwire/pull/169
-      'toggleBehavior' => $opt->toggle,
+      'toggleBehavior' => $opt->toggleBehavior,
     ]);
 
   }
