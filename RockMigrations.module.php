@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.75',
+      'version' => '0.0.76',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -2141,24 +2141,36 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
-     * Install module
+     * Install module (even if dependencies are not met!)
      *
      * If an URL is provided the module will be downloaded before installation.
      *
+     * You can provide module settings as 3rd parameter. If no url is provided
+     * you can submit config data as 2nd parameter (shorter syntax).
+     *
      * @param string $name
-     * @param string $url
+     * @param string|array $url
+     * @param array $config
      * @return Module
      */
-    public function installModule($name, $url = null) {
+    public function installModule($name, $url = null, $config = []) {
+      if(is_array($url)) {
+        $config = $url;
+        $url = null;
+      }
+
       // if the module is already installed we return it
       $module = $this->modules->get((string)$name);
-      if($module) return $module;
+      if(!$module) {
+        // if an url was provided, download the module
+        if($url) $this->downloadModule($url);
 
-      // if an url was provided, download the module
-      if($url) $this->downloadModule($url);
-
-      // install and return the module
-      return $this->modules->install($name, ['force' => true]);
+        // install the module
+        // force option installs module even if dependencies are not met
+        $module = $this->modules->install($name, ['force' => true]);
+      }
+      if(count($config)) $this->setModuleConfig($module, $config);
+      return $module;
     }
 
     /**
