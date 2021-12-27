@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.77',
+      'version' => '0.0.78',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -323,6 +323,16 @@ class RockMigrations extends WireData implements Module {
    */
   public function getPage($data) {
     return $this->wire->pages->get((string)$data);
+  }
+
+  /**
+   * Get textformatter from name
+   * @return Textformatter
+   */
+  public function getTextformatter($name) {
+    $formatter = $this->wire->modules->get("Textformatter".$name);
+    if(!$formatter) $formatter = $this->wire->modules->get($name);
+    return $formatter;
   }
 
   /**
@@ -711,6 +721,24 @@ class RockMigrations extends WireData implements Module {
     }
 
     /**
+     * Add textformatter to given field
+     * You can set a template context as third parameter
+     * @param mixed $formatter formatter to add
+     * @param mixed $field to add the formatter to
+     * @return void
+     */
+    public function addTextformatterToField($formatter, $field) {
+      $name = (string)$formatter;
+      $formatter = $this->getTextformatter($name);
+      if(!$formatter) return $this->log("Formatter $name not found");
+      $formatters = $this->getFieldData($field, "textformatters") ?: [];
+      $formatters = array_merge($formatters, [(string)$formatter]);
+      $this->setFieldData($field, [
+        'textformatters' => $formatters,
+      ]);
+    }
+
+    /**
      * Change type of field
      * @param Field|string $field
      * @param string $type
@@ -880,6 +908,18 @@ class RockMigrations extends WireData implements Module {
       // field was not found, throw exception
       if(!$exception) $exception = "Field $name not found";
       throw new WireException($exception);
+    }
+
+    /**
+     * Get field data of field
+     * @return array
+     */
+    public function getFieldData($field, $property = null) {
+      $field = $this->getField($field);
+      $arr = $field->getArray();
+      if(!$property) return $arr;
+      if(!array_key_exists($property, $arr)) return false;
+      return $arr[$property];
     }
 
     /**
