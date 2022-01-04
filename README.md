@@ -217,7 +217,7 @@ $rm->migrate([
       'tags' => 'YourTags',
       'maxFiles' => 0,
       'descriptionRows' => 1,
-      'extensions' => "pdf jpg png zip docx svg",
+      'extensions' => "jpg jpeg gif png svg",
       'okExtensions' => ['svg'],
       'icon' => 'picture-o',
       'outputFormat' => FieldtypeFile::outputFormatSingle,
