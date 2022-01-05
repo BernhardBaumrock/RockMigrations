@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.82',
+      'version' => '0.0.83',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -1063,6 +1063,7 @@ class RockMigrations extends WireData implements Module {
         }
 
         // support repeater field array
+        $contexts = [];
         if($key === "repeaterFields") {
           $fields = $data[$key];
           $addFields = [];
@@ -1072,11 +1073,11 @@ class RockMigrations extends WireData implements Module {
               // we've got a field with field context info here
               $fieldname = $i;
               $fielddata = $_field;
-              $this->setFieldData(
+              $contexts[] = [
                 $fieldname,
                 $fielddata,
-                $this->getRepeaterTemplate($field)
-              );
+                $this->getRepeaterTemplate($field),
+              ];
             }
             else {
               // field without field context info
@@ -1091,6 +1092,12 @@ class RockMigrations extends WireData implements Module {
           if($tpl = $this->getRepeaterTemplate($field)) {
             $this->addFieldsToTemplate($addFields, $tpl);
           }
+
+          // set field contexts now that the fields are present
+          foreach($contexts as $c) {
+            $this->setFieldData($c[0], $c[1], $c[2]);
+          }
+
         }
 
         // add support for setting options of a select field
