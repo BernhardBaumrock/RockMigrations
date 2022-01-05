@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.80',
+      'version' => '0.0.81',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -482,6 +482,14 @@ class RockMigrations extends WireData implements Module {
    */
   public function readyPageClass($data) {
     $this->initPageClass($data, 'ready');
+  }
+
+  /**
+   * Set the logo url of the backend logo (AdminThemeUikit)
+   * @return void
+   */
+  public function setAdminLogoUrl($url) {
+    $this->setModuleConfig("AdminThemeUikit", ['logoURL' => $url]);
   }
 
   /**
@@ -2299,6 +2307,15 @@ class RockMigrations extends WireData implements Module {
       }
 
       /**
+       * Install the languagesupport module
+       * @return void
+       */
+      public function addLanguageSupport() {
+        if($this->modules->isInstalled("LanguageSupport")) return;
+        $this->installModule("LanguageSupport");
+      }
+
+      /**
        * Adds new language if it doesn't exists yet. Also installs language support if missing
        *
        * @param string $languageName of new language
@@ -2308,7 +2325,7 @@ class RockMigrations extends WireData implements Module {
        */
       public function addNewLanguage(string $languageName, string $languageTitle = null) {
         // Make sure Language Support is installed
-        $this->modules->get('LanguageSupport');
+        $this->addLanguageSupport();
         $newLang = $this->languages->get($languageName);
         if(!$newLang->id) {
           $newLang = $this->languages->add($languageName);
@@ -2323,26 +2340,30 @@ class RockMigrations extends WireData implements Module {
 
       /**
        * Set core translations from zip file to a language. Removes old translations if any.
+       * Installs LanguageSupport if it is not installed.
        *
        * <code>
        * $rm->setTranslationsToLanguage("https://github.com/jmartsch/pw-lang-de/archive/refs/heads/main.zip", "german");
        * </code>
        *
-       * @param string $urlToTranslationsZip public url to zip file containing translation json files
-       * @param string $languageName that is updated
+       * @param string $urlToTranslationsZip public url to language zip file OR key like DE or FI
+       * @param string $languageName that is updated, null for default language
        *
        * @return Language $language
        */
-      public function setTranslationsToLanguage(string $urlToTranslationsZip, string $languageName = "default") {
+      public function setTranslationsToLanguage(string $urlToTranslationsZip, string $languageName = null) {
+        $zip = $this->getLanguageZipUrl($urlToTranslationsZip);
+
         // Make sure Language Support is installed
-        $this->modules->get('LanguageSupport');
-        $language = $this->languages->get($languageName);
-        if (!$language->id) throw new WireException("Language does not exists.");
+        $this->addLanguageSupport();
+        if($languageName) $language = $this->languages->get($languageName);
+        else $language = $this->languages->getDefault();
+        if (!$language->id) throw new WireException("Language $languageName does not exists.");
         $http = new WireHttp();
 
         // Download zip to cache folder for unzipping
         $zipTemp = $this->config->paths->cache . $languageName . "_temp.zip";
-        $http->download($urlToTranslationsZip, $zipTemp);
+        $http->download($zip, $zipTemp);
 
         // Unzip files and add .json files to language
         $items = $this->files->unzip($zipTemp, $this->config->paths->cache);
@@ -2373,6 +2394,16 @@ class RockMigrations extends WireData implements Module {
         $language = $this->languages->get($languageName);
         if (!$language->name) return;
         $this->languages->delete($language);
+      }
+
+      /**
+       * Get language zip url
+       * @return string
+       */
+      public function getLanguageZipUrl($url) {
+        if(strtoupper($url) == 'DE') return "https://github.com/jmartsch/pw-lang-de/archive/refs/heads/main.zip";
+        if(strtoupper($url) == 'FI') return "https://github.com/apeisa/Finnish-ProcessWire/archive/refs/heads/master.zip";
+        return $url;
       }
 
     /* ##### helpers ##### */
