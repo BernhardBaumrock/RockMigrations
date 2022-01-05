@@ -103,6 +103,33 @@ PS: Did you realize the typo in the migration?? If not, that's the best proof wh
 
 PPS: Some examples of outdated techniques I'm not using any more are in the old readme file: https://github.com/BernhardBaumrock/RockMigrations/blob/fdd763485ca572d45143067d4966d9f49c572a95/README.md
 
+### Note about fireOnRefresh()
+
+Prior to v0.0.82 the `fireOnRefresh` did NOT fire in bootstrapped environments. This is because ProcessWire by default runs as guest user when bootstrapped and the `fireOnRefresh` method did not attach any hooks if the user was no superuser. That was a problem for me because a `$modules->refresh()` did not trigger any migrations when invoked from the commandline. To solve that issue v0.0.82 introduces another concept:
+
+`fireOnRefresh` fires always after Modules::refresh even for guest users. If you need to prevent RockMigrations from firing actions that where attached via `fireOnRefresh` you have two options:
+
+* Setting a constant: `define("DontFireOnRefresh", true)`
+* Setting a config property: `$config->DontFireOnRefresh = true;`
+
+Note that the setting must be available to RockMigrations BEFORE the action gets attached via `fireOnRefresh`. This is best explained by examples:
+
+```php
+define('DontFireOnRefresh', true);
+include("index.php"); // fireOnRefresh is triggered here
+$modules->refresh(); // this will not trigger any migrations
+```
+
+We define the constant before ProcessWire gets loaded and therefore any module attaching migrations via `fireOnRefresh` will actually NOT attach any migrations because the flag to prevent that is present when the triggered from `init()` or `ready()`.
+
+```php
+include("index.php"); // fireOnRefresh is triggered here
+$config->DontFireOnRefresh = true;
+$modules->refresh(); // this WILL trigger all migrations!
+```
+
+In this example the migrations will be triggered because the migrations have been attached BEFORE the config setting was set. In other words the flag was set too late for RockMigrations to realize it.
+
 ## Conventions
 
 Please make sure to use field and template names without dashes:

@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.81',
+      'version' => '0.0.82',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -224,10 +224,20 @@ class RockMigrations extends WireData implements Module {
    *   $rm->deleteField(...);
    * });
    *
+   * @param Module $module module or callback
+   * @param string $method the method name to invoke
+   * @param int|array $priority options array for the hook; if you provide
+   * an integer value it will be casted to the hook priority ['priority'=>xxx]
+   *
    * @return void
    */
   public function fireOnRefresh($module, $method = null, $priority = []) {
-    if(!$this->wire->user->isSuperuser()) return;
+    // If flags are present dont attach hooks to Modules::refresh
+    // See the readme for more information!
+    if(defined("DontFireOnRefresh")) return;
+    if($this->wire->config->DontFireOnRefresh) return;
+
+    // attach the hook
     if(is_int($priority)) $priority = ['priority'=>$priority];
     if($module instanceof Module) {
       $this->wire->addHookAfter("Modules::refresh", $module, $method, $priority);
