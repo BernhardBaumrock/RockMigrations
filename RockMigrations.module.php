@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.83',
+      'version' => '0.0.84',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -402,6 +402,14 @@ class RockMigrations extends WireData implements Module {
       if($namespace) $class = "\\$namespace\\$class";
       $tmp = new $class();
       if(method_exists($tmp, "init")) $tmp->init();
+
+      // attach hooks for some magic methods
+      if(method_exists($tmp, "buildForm")) {
+        $this->wire->addHookAfter("ProcessPageEdit::buildForm", $tmp, "buildForm");
+      }
+      if(method_exists($tmp, "buildFormContent")) {
+        $this->wire->addHookAfter("ProcessPageEdit::buildFormContent", $tmp, "buildFormContent");
+      }
     }
   }
 
