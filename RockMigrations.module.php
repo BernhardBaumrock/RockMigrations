@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.84',
+      'version' => '0.0.85',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -544,6 +544,39 @@ class RockMigrations extends WireData implements Module {
     if(!$module instanceof Module) throw new WireException("This is not a valid Module!");
     $this->module = $module;
     return $this;
+  }
+
+  /**
+   * Set page name from page title
+   *
+   * Usage:
+   * $rm->setPageNameFromTitle("basic-page");
+   *
+   * Make sure to install Page Path History module!
+   *
+   * @param mixed $object
+   */
+  public function setPageNameFromTitle($template) {
+    $template = $this->getTemplate($template);
+    $tpl = "template=$template";
+    $this->addHookAfter("Pages::saveReady($tpl,id>0)", function(HookEvent $event) {
+      $page = $event->arguments(0);
+      $old = $page->name;
+      $new = $event->sanitizer->pageNameTranslate($page->title);
+      if($new AND $old!=$new) {
+        $page->name = $new;
+        $this->message($this->_("Page name updated to $new"));
+      }
+    });
+    $this->addHookAfter("ProcessPageEdit::buildForm", function(HookEvent $event) use($template) {
+      $page = $event->object->getPage();
+      if($page->template != $template) return;
+      $form = $event->return;
+      if($f = $form->get('_pw_page_name')) {
+        $f->collapsed = Inputfield::collapsedLocked;
+        $f->notes = $this->_('Page name will be set automatically from page title on save.');
+      }
+    });
   }
 
   /**
