@@ -13,7 +13,7 @@ class RockMigrations extends WireData implements Module {
   public static function getModuleInfo() {
     return [
       'title' => 'RockMigrations',
-      'version' => '0.0.85',
+      'version' => '0.0.86',
       'summary' => 'Module to handle Migrations inside your Modules easily.',
       'autoload' => true,
       'singular' => true,
@@ -560,12 +560,28 @@ class RockMigrations extends WireData implements Module {
     $template = $this->getTemplate($template);
     $tpl = "template=$template";
     $this->addHookAfter("Pages::saveReady($tpl,id>0)", function(HookEvent $event) {
+      /** @var Page $page */
       $page = $event->arguments(0);
-      $old = $page->name;
-      $new = $event->sanitizer->pageNameTranslate($page->title);
-      if($new AND $old!=$new) {
-        $page->name = $new;
-        $this->message($this->_("Page name updated to $new"));
+      $langs = $this->wire->languages;
+      if($langs) {
+        foreach($langs as $lang) {
+          $prop = $lang->isDefault() ? "name" : "name$lang";
+          $old = $page->get($prop);
+          $new = $page->getLanguageValue($lang, "title");
+          $new = $event->sanitizer->pageNameTranslate($new);
+          if($new AND $old!=$new) {
+            $page->set($prop, $new);
+            $this->message($this->_("Page name updated to $new ($lang->name)"));
+          }
+        }
+      }
+      else {
+        $old = $page->name;
+        $new = $event->sanitizer->pageNameTranslate($page->title);
+        if($new AND $old!=$new) {
+          $page->name = $new;
+          $this->message($this->_("Page name updated to $new"));
+        }
       }
     });
     $this->addHookAfter("ProcessPageEdit::buildForm", function(HookEvent $event) use($template) {
@@ -573,7 +589,6 @@ class RockMigrations extends WireData implements Module {
       if($page->template != $template) return;
       $form = $event->return;
       if($f = $form->get('_pw_page_name')) {
-        $f->collapsed = Inputfield::collapsedLocked;
         $f->notes = $this->_('Page name will be set automatically from page title on save.');
       }
     });
