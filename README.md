@@ -162,6 +162,17 @@ $rm->migrate([
 ]);
 ```
 
+## Language support
+
+```php
+// add english as second language
+$rm->addLanguage("en", "Englisch");
+// set german translations to the default language
+// provide language name as second parameter
+// will automatically download translations from GIT if available
+$rm->setTranslationsToLanguage("de");
+```
+
 ## Access Control
 
 ProcessWire has a powerful access control system. When using RM to create new templates and pages it is quite likely that you also want to create roles and define access for those roles on the new templates. The basics of access control can easily be done via RM - for more advanced topics you might need to implement custom solutions. PRs welcome :)
