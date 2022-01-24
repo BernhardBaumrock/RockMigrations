@@ -665,6 +665,10 @@ class RockMigrations extends WireData implements Module {
     $this->executeUpgrade($prev, $version);
   }
 
+  public function watch($file, $migrate = true, $options = []) {
+    return false;
+  }
+
   /**
    * Wrap fields of a form into a fieldset
    *
