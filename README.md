@@ -1,18 +1,20 @@
+![warning](https://user-images.githubusercontent.com/8488586/179171494-c00f4bae-14f7-4d20-97b3-92b6d9d1fd76.png)
+![warning](https://user-images.githubusercontent.com/8488586/179171494-c00f4bae-14f7-4d20-97b3-92b6d9d1fd76.png)
+
+# You are watching the old version of RockMigrations! Please head over to the new version
+
+https://github.com/baumrock/RockMigrations
+
+![warning](https://user-images.githubusercontent.com/8488586/179171494-c00f4bae-14f7-4d20-97b3-92b6d9d1fd76.png)
+![warning](https://user-images.githubusercontent.com/8488586/179171494-c00f4bae-14f7-4d20-97b3-92b6d9d1fd76.png)
+
+---
+
 ## A message to Russian 🇷🇺 people
 
 If you currently live in Russia, please read [this message](https://github.com/Roave/SecurityAdvisories/blob/latest/ToRussianPeople.md).
 
-[![SWUbanner](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://github.com/vshymanskyy/StandWithUkraine/blob/main/docs/README.md)
-
 ---
-
-I'm working on a new release of RockMigrations 😎
-
-Therefore this repository has been archived. You can continue to use RockMigrations - there will just not be any updates to it any more!
-
-Support Board Link: https://processwire.com/talk/topic/21212-rockmigrations-easy-migrations-from-devstaging-to-live-server/
-
-----------
 
 # [ARCHIVED] OLD README:
 
@@ -372,3 +374,5 @@ $config->filesOnDemand = "https://www.example.com";
 ```php
 $rm->setPagenameReplacements("de");
 ```
+
+<a href="https://www.flaticon.com/free-icons/warning" title="warning icons">Warning icons created by Freepik - Flaticon</a>
